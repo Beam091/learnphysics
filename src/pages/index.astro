@@ -1,0 +1,72 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base>
+  <section class="hero wrap">
+    <div class="hero-text">
+      <h1>ฟิสิกส์ที่เห็นภาพ ลองปรับค่าแล้วดูผลได้ทันที</h1>
+      <p class="lead">
+        เว็บเรียนฟิสิกส์ภาษาไทยตั้งแต่ ม.ต้นถึง ม.ปลาย รวมคลิปสอน แอนิเมชั่นจำลอง เกม
+        และแบบทดสอบไว้ในที่เดียว
+      </p>
+      <p class="status">เว็บอยู่ระหว่างสร้าง บทเรียนแรกกำลังจะมา</p>
+      <p class="more"><a href="/courses">ดูแผนหลักสูตรทั้งหมด</a></p>
+    </div>
+
+    <div class="sim">
+      <h2>ลองยิงวัตถุเฉียงขึ้น</h2>
+      <svg
+        id="plot"
+        viewBox="0 0 680 360"
+        role="img"
+        aria-label="กราฟแสดงเส้นทางของวัตถุที่ถูกยิงเฉียงขึ้น แกนนอนคือระยะทาง แกนตั้งคือความสูง หน่วยเมตร"
+      ></svg>
+
+      <div class="controls">
+        <div class="field">
+          <label for="angle">มุมยิง <output id="angleOut">45</output> องศา</label>
+          <input id="angle" type="range" min="10" max="80" step="1" value="45" />
+        </div>
+        <div class="field">
+          <label for="speed">ความเร็วต้น <output id="speedOut">25</output> เมตร/วินาที</label>
+          <input id="speed" type="range" min="10" max="40" step="1" value="25" />
+        </div>
+        <button id="shoot" type="button">ยิง</button>
+      </div>
+
+      <dl class="results" aria-live="polite">
+        <div><dt>ระยะไกลสุด</dt><dd id="rangeOut">-</dd></div>
+        <div><dt>สูงสุด</dt><dd id="heightOut">-</dd></div>
+        <div><dt>เวลาที่ลอย</dt><dd id="timeOut">-</dd></div>
+      </dl>
+      <p class="note">ไม่คิดแรงต้านอากาศ ใช้ g = 9.8 เมตร/วินาที²</p>
+    </div>
+  </section>
+
+  <section class="steps">
+    <div class="wrap">
+      <h2>ทุกบทเรียนมี 4 ขั้น</h2>
+      <ol>
+        <li>
+          <strong>ดูคลิปสอน</strong>
+          <span>ลิงก์ไปดูบน YouTube จากช่องครูไทยหลายช่อง</span>
+        </li>
+        <li>
+          <strong>ลองจำลอง</strong>
+          <span>ปรับค่าเองแล้วดูผลทันที เหมือนตัวอย่างด้านบน</span>
+        </li>
+        <li>
+          <strong>เล่นเกม</strong>
+          <span>ฝึกใช้ความรู้ผ่านเกมสั้นๆ</span>
+        </li>
+        <li>
+          <strong>ทำแบบทดสอบ</strong>
+          <span>ตรวจคำตอบพร้อมเฉลยอธิบาย</span>
+        </li>
+      </ol>
+      <p class="soon">เข้าสู่ระบบด้วย Google เพื่อบันทึกความคืบหน้า (กำลังพัฒนา)</p>
+    </div>
+  </section>
+
+  <script is:inline defer src="/app.js"></script>
+</Base>

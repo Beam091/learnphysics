@@ -1,0 +1,13 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base title="บทเรียน | LearnPhysics">
+  <div class="solid">
+    <section class="wrap lesson">
+      <div id="lesson" aria-live="polite">กำลังโหลดบทเรียน...</div>
+      <noscript><p>ต้องเปิด JavaScript เพื่อเรียนบทเรียน</p></noscript>
+    </section>
+  </div>
+  <script is:inline defer src="/engines.js"></script>
+  <script is:inline defer src="/lesson.js"></script>
+</Base>

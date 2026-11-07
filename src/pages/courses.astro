@@ -1,0 +1,17 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base title="หลักสูตร | LearnPhysics">
+  <div class="solid">
+  <section class="wrap courses">
+    <h1>หลักสูตรฟิสิกส์</h1>
+    <p class="lead">
+      แผนบทเรียนทั้งหมดตั้งแต่ ม.ต้นถึง ม.ปลาย บทเรียนจะทยอยเปิดทีละบท
+      ตัวเลขด้านขวาของแต่ละบทคือจำนวนบทเรียนที่วางแผนไว้
+    </p>
+    <div id="catalog" aria-live="polite">กำลังโหลดหลักสูตร...</div>
+    <noscript><p>ต้องเปิด JavaScript เพื่อดูหลักสูตร</p></noscript>
+  </section>
+  </div>
+  <script is:inline defer src="/courses.js"></script>
+</Base>

@@ -1,0 +1,32 @@
+{
+  // ชื่อ Worker ต้องตรงกับชื่อโปรเจ็คที่ตั้งใน Cloudflare (ใช้ learnphysics)
+  "name": "learnphysics",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-01",
+
+  // หน้าเว็บที่ Astro สร้างแล้วอยู่ในโฟลเดอร์ dist (ได้จากคำสั่ง npm run build)
+  // Worker จะทำงานเฉพาะ path ที่ขึ้นต้นด้วย /api/ ส่วนหน้าเว็บ Cloudflare ส่งให้เองโดยตรง
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"],
+    "not_found_handling": "404-page"
+  },
+
+  // ฐานข้อมูล D1 (สร้างแล้ว และมีตารางครบตาม migrations/0001_init.sql)
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "learnphysics-db",
+      "database_id": "b924c2f3-4217-4b1e-a215-579cd9ad4eb1",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // ที่เก็บไฟล์ R2 (สร้างแล้ว)
+  "r2_buckets": [
+    { "binding": "FILES", "bucket_name": "learnphysics-files" }
+  ],
+
+  "observability": { "enabled": true }
+}

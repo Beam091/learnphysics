@@ -1,0 +1,58 @@
+---
+// โครงหน้าเว็บที่ใช้ร่วมกันทุกหน้า: ส่วนหัว ส่วนท้าย และการโหลดฟอนต์/สไตล์
+interface Props {
+  title?: string;
+  description?: string;
+}
+const {
+  title = "LearnPhysics เรียนฟิสิกส์ออนไลน์",
+  description = "เว็บเรียนฟิสิกส์ภาษาไทย ม.ต้นถึง ม.ปลาย รวมคลิปสอน แอนิเมชั่นจำลอง เกม และแบบทดสอบ",
+} = Astro.props;
+---
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600&family=Sarabun:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="/">
+          <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+            <path d="M3 27 Q16 -6 29 27" fill="none" stroke="currentColor" stroke-width="2.5" />
+            <circle cx="16" cy="10.5" r="3" fill="var(--ball)" />
+          </svg>
+          <span>LearnPhysics</span>
+        </a>
+        <nav aria-label="เมนูหลัก">
+          <a href="/courses">หลักสูตร</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <p><strong>พัฒนาโดย Bunlai IT Group</strong></p>
+        <p>
+          คลิปสอนทั้งหมดเป็นของเจ้าของช่องบน YouTube เว็บนี้รวบรวมเฉพาะลิงก์พร้อมเครดิตช่อง
+          เพื่อการศึกษา ไม่แสวงหากำไร หากเจ้าของช่องต้องการให้ถอดลิงก์ เราจะดำเนินการทันที
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

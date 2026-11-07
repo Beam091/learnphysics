@@ -1,0 +1,333 @@
+:root {
+  --paper: #eef3f7;
+  --grid: #d3dfea;
+  --ink: #14213d;
+  --muted: #3f5070;
+  --panel: #ffffff;
+  --path: #2f5bea;
+  --mark: #ffd84d;
+  --ball: #e5484d;
+  --bad: #b3261e;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0f1a2e;
+    --grid: #1b2a44;
+    --ink: #eaf0fa;
+    --muted: #a9b9d4;
+    --panel: #13233d;
+    --path: #7ea2ff;
+    --mark: #ffd84d;
+    --ball: #ff7a7f;
+    --bad: #ff8a8f;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: "Sarabun", "Noto Sans Thai", system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+h1, h2, .brand {
+  font-family: "Prompt", "Sarabun", system-ui, sans-serif;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+a { color: inherit; }
+
+:focus-visible { outline: 3px solid var(--path); outline-offset: 2px; }
+
+/* ส่วนหัว */
+.site-header { padding: 18px 0; }
+.site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.site-header nav a { font-weight: 600; padding: 8px 4px; }
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.25rem;
+  text-decoration: none;
+}
+
+/* ส่วนบนสุดของหน้า */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  padding-top: 20px;
+  padding-bottom: 44px;
+}
+
+@media (min-width: 860px) {
+  .hero {
+    grid-template-columns: 1fr 1.15fr;
+    align-items: center;
+    gap: 48px;
+    padding-top: 44px;
+    padding-bottom: 64px;
+  }
+}
+
+h1 {
+  font-size: clamp(1.85rem, 4.6vw, 2.85rem);
+  margin: 0 0 16px;
+  max-width: 15em;
+  text-wrap: balance;
+}
+
+.lead { max-width: 34em; margin: 0 0 18px; color: var(--muted); }
+
+.status {
+  display: inline-block;
+  margin: 0;
+  padding: 2px 12px;
+  background: var(--mark);
+  color: #14213d;
+  font-weight: 600;
+}
+
+.more { margin: 14px 0 0; }
+.more a { font-weight: 600; }
+
+/* ตัวอย่างจำลอง */
+.sim {
+  background: var(--panel);
+  border: 2px solid var(--ink);
+  padding: 16px;
+}
+
+.sim h2 { font-size: 1.05rem; margin: 0 0 8px; }
+
+#plot { display: block; width: 100%; height: auto; }
+
+.g-line { stroke: var(--grid); stroke-width: 1; }
+.g-axis { stroke: var(--ink); stroke-width: 1.5; }
+.g-label { fill: var(--muted); font-size: 20px; font-family: "Sarabun", sans-serif; }
+.path { fill: none; stroke: var(--path); stroke-width: 3; stroke-linejoin: round; }
+.mark { fill: var(--mark); stroke: var(--ink); stroke-width: 1.5; }
+.ball { fill: var(--ball); stroke: var(--ink); stroke-width: 1.5; }
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px 20px;
+  margin-top: 12px;
+}
+
+@media (min-width: 560px) {
+  .controls { grid-template-columns: 1fr 1fr; }
+  .controls button { grid-column: 1 / -1; }
+}
+
+.field label { display: block; font-weight: 600; }
+input[type="range"] { width: 100%; accent-color: var(--path); }
+
+button {
+  font-family: "Prompt", "Sarabun", system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 8px 22px;
+  color: var(--paper);
+  background: var(--ink);
+  border: 2px solid var(--ink);
+  cursor: pointer;
+}
+
+button:hover { background: var(--path); border-color: var(--path); color: #fff; }
+
+.results {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 14px 0 0;
+}
+
+.results dt { font-size: 0.85rem; color: var(--muted); }
+
+.results dd {
+  margin: 0;
+  font-family: "Prompt", "Sarabun", system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.note { margin: 10px 0 0; font-size: 0.9rem; color: var(--muted); }
+
+/* ขั้นตอนของบทเรียน */
+.steps {
+  background: var(--paper);
+  border-top: 2px solid var(--ink);
+  padding: 36px 0 52px;
+}
+
+.steps h2 { font-size: 1.5rem; margin: 0 0 20px; }
+
+.steps ol {
+  list-style: none;
+  counter-reset: step;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 760px) {
+  .steps ol { grid-template-columns: repeat(4, 1fr); gap: 24px; }
+}
+
+.steps li {
+  counter-increment: step;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 2px solid var(--ink);
+}
+
+.steps li::before {
+  content: counter(step);
+  font-family: "Prompt", "Sarabun", system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--path);
+}
+
+.steps li strong { font-family: "Prompt", "Sarabun", system-ui, sans-serif; font-weight: 600; }
+.steps li span { color: var(--muted); }
+.soon { margin: 28px 0 0; color: var(--muted); }
+
+/* หน้าหลักสูตร */
+.solid { background: var(--paper); }
+.courses { padding-top: 24px; padding-bottom: 64px; }
+.courses h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); }
+.total { margin: 0 0 20px; font-weight: 600; }
+#catalog { display: grid; grid-template-columns: 1fr; gap: 28px; }
+#catalog .total { grid-column: 1 / -1; margin: 0; }
+@media (min-width: 760px) { #catalog { grid-template-columns: 1fr 1fr; gap: 32px 48px; } }
+.cat h2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 1.2rem;
+  margin: 0 0 8px;
+  padding-top: 12px;
+  border-top: 2px solid var(--ink);
+}
+.cat-count { font-family: "Sarabun", sans-serif; font-weight: 400; font-size: 0.95rem; color: var(--muted); white-space: nowrap; }
+.chapters { list-style: none; margin: 0; padding: 0; }
+.chapters li { padding: 6px 0; border-bottom: 1px solid var(--grid); }
+.chapters .row { display: flex; justify-content: space-between; gap: 12px; }
+.lesson-links { list-style: none; margin: 4px 0 4px 16px; padding: 0; }
+.lesson-links li { border: 0; padding: 2px 0; }
+.lesson-links a { font-weight: 600; color: var(--path); }
+.ch-count { color: var(--muted); white-space: nowrap; }
+
+/* หน้าบทเรียน */
+.lesson { padding-top: 20px; padding-bottom: 64px; }
+.lesson h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); margin: 8px 0 8px; max-width: 22em; }
+.crumbs { font-size: 0.95rem; color: var(--muted); }
+.crumbs a { font-weight: 600; }
+.level-badge {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 0 10px;
+  border: 2px solid var(--ink);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.step { margin-top: 36px; padding-top: 14px; border-top: 2px solid var(--ink); }
+.step h2 { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; font-size: 1.3rem; margin: 0 0 14px; }
+.step-no { color: var(--path); font-size: 1.7rem; line-height: 1; }
+.step-status { margin-left: auto; padding: 0 10px; background: var(--mark); color: #14213d; font-family: "Sarabun", sans-serif; font-size: 0.9rem; font-weight: 600; }
+.step-status:empty { display: none; }
+.muted { color: var(--muted); }
+.videos { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 14px; }
+.videos li { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; background: var(--panel); border: 2px solid var(--ink); }
+a.button, button.secondary {
+  display: inline-block;
+  font-family: "Prompt", "Sarabun", system-ui, sans-serif;
+  font-weight: 600;
+  text-decoration: none;
+  min-height: 44px;
+  padding: 8px 22px;
+  line-height: 1.7;
+  color: var(--paper);
+  background: var(--ink);
+  border: 2px solid var(--ink);
+}
+a.button:hover { background: var(--path); border-color: var(--path); color: #fff; }
+button.secondary { color: var(--ink); background: var(--panel); }
+button.secondary:hover { background: var(--mark); border-color: var(--ink); color: #14213d; }
+.field.check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.field.check input { width: 22px; height: 22px; accent-color: var(--path); }
+.controls.three { grid-template-columns: 1fr; }
+@media (min-width: 560px) { .controls.three { grid-template-columns: 1fr 1fr; } }
+.results.two { grid-template-columns: repeat(2, 1fr); }
+.target { fill: var(--mark); stroke: var(--ink); stroke-width: 1.5; }
+.ray { stroke: var(--path); stroke-width: 4; stroke-linecap: round; }
+.normal { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 8 6; }
+.mirror { stroke: var(--ink); stroke-width: 7; stroke-linecap: round; }
+.arc { fill: none; stroke: var(--ink); stroke-width: 2; }
+.arrow { stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
+.arrow-head { fill: var(--ink); }
+.charge-pos { fill: var(--ball); stroke: var(--ink); stroke-width: 2; }
+.charge-neg { fill: var(--path); stroke: var(--ink); stroke-width: 2; }
+.charge-sign { fill: #fff; font-family: "Prompt", sans-serif; font-weight: 600; font-size: 26px; }
+@media (prefers-color-scheme: dark) { .charge-sign { fill: #0f1a2e; } }
+.game-info, .game-msg { margin: 0 0 10px; }
+.game-msg { margin-top: 10px; font-weight: 600; min-height: 1.7em; }
+.quiz .q { margin: 0 0 18px; padding: 12px 14px; background: var(--panel); border: 2px solid var(--ink); }
+.quiz legend { float: left; width: 100%; padding: 0 0 8px; font-weight: 600; }
+.quiz .opt, .quiz .mark-line { clear: both; }
+.opt { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.opt input[type="radio"] { width: 22px; height: 22px; accent-color: var(--path); flex: none; }
+.opt.num { flex-direction: column; align-items: flex-start; gap: 4px; }
+.opt.num input { font: inherit; width: 12em; max-width: 100%; padding: 8px 10px; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); }
+.mark-line { margin: 8px 0 0; }
+.mark-line:empty { display: none; }
+.mark-line.ok { color: var(--path); }
+.mark-line.bad { color: var(--bad); }
+.mark-line strong { color: inherit; }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.quiz-result { margin-top: 14px; }
+.score { margin: 0; font-family: "Prompt", "Sarabun", sans-serif; font-weight: 600; font-size: 1.15rem; }
+.save-note { margin-top: 28px; }
+
+/* หน้า 404 */
+.notfound { padding-top: 40px; padding-bottom: 80px; }
+.back { font-weight: 600; }
+
+/* ส่วนท้าย */
+.site-footer {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 24px 0 32px;
+  font-size: 0.95rem;
+}
+
+.site-footer p { margin: 4px 0; max-width: 46em; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
