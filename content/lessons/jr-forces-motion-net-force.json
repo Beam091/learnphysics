@@ -1,0 +1,82 @@
+{
+  "slug": "jr-forces-motion-net-force",
+  "level": "junior",
+  "chapter": "jr-forces-motion",
+  "sort_order": 5,
+  "title": "แรงลัพธ์และการรวมแรง",
+  "summary": "แรงลัพธ์คือแรงรวมของทุกแรงที่กระทำต่อวัตถุ แรงที่ไปทางเดียวกันรวมกัน ส่วนแรงที่ตรงข้ามกันหักล้างกัน",
+  "videos": [
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=OOMb6NAJ0IA",
+      "youtube_id": "OOMb6NAJ0IA",
+      "title": "สอนศาสตร์ ฟิสิกส์ ม.ต้น | พี่ลูกตาล : แรงในชีวิตประจำวัน ตอนที่ 2",
+      "channel_name": "TruePlookpanya Channel",
+      "channel_url": "https://www.youtube.com/channel/UCjj4VB9nW0zN5reBS0cIf6A"
+    },
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=6cXgKmw9Rjc",
+      "youtube_id": "6cXgKmw9Rjc",
+      "title": "สอนศาสตร์ : ม.ต้น : วิทยาศาสตร์ : Physics Force",
+      "channel_name": "TruePlookpanya Channel",
+      "channel_url": "https://www.youtube.com/channel/UCjj4VB9nW0zN5reBS0cIf6A"
+    }
+  ],
+  "animation": null,
+  "game": null,
+  "quiz": {
+    "title": "แบบทดสอบ: แรงลัพธ์และการรวมแรง",
+    "pass_score": 60,
+    "questions": [
+      {
+        "type": "choice",
+        "body": "แรง 5 นิวตันกับ 3 นิวตันกระทำทิศเดียวกัน แรงลัพธ์มีขนาดเท่าใด",
+        "choices": [
+          "8 นิวตัน",
+          "2 นิวตัน",
+          "15 นิวตัน",
+          "5 นิวตัน"
+        ],
+        "answer": 0,
+        "explanation": "แรงไปทางเดียวกันบวกกัน = 5 + 3 = 8 นิวตัน"
+      },
+      {
+        "type": "choice",
+        "body": "แรง 7 นิวตันไปทางขวากับแรง 3 นิวตันไปทางซ้าย แรงลัพธ์มีขนาดและทิศทางใด",
+        "choices": [
+          "10 นิวตันไปทางขวา",
+          "4 นิวตันไปทางขวา",
+          "4 นิวตันไปทางซ้าย",
+          "10 นิวตันไปทางซ้าย"
+        ],
+        "answer": 1,
+        "explanation": "แรงตรงข้ามกันหักล้าง = 7 - 3 = 4 นิวตัน ไปทางข้างที่มีแรงมากกว่าคือทางขวา"
+      },
+      {
+        "type": "choice",
+        "body": "แรงลัพธ์เป็นศูนย์หมายความว่าอย่างไร",
+        "choices": [
+          "ไม่มีแรงใดกระทำต่อวัตถุเลย",
+          "วัตถุเคลื่อนที่เร็วขึ้นเสมอ",
+          "แรงที่กระทำรวมกันแล้วหักล้างหมดพอดี",
+          "มวลของวัตถุเป็นศูนย์"
+        ],
+        "answer": 2,
+        "explanation": "แรงลัพธ์เป็นศูนย์ หมายความว่าทุกแรงรวมกันแล้วหักล้างหมดพอดี ไม่ใช่ว่าไม่มีแรงกระทำ"
+      },
+      {
+        "type": "number",
+        "body": "แรงสองแรงขนาด 12 นิวตันและ 8 นิวตันไปแนวเดียวกันและทิศเดียวกัน แรงลัพธ์มีขนาดเท่าใด (ตอบเป็นนิวตัน จำนวนเต็ม)",
+        "answer": { "value": 20, "tolerance": 0.5 },
+        "explanation": "แรงทิศเดียวกันบวกกัน = 12 + 8 = 20 นิวตัน"
+      },
+      {
+        "type": "number",
+        "body": "แรง 15 นิวตันไปทางขวากับแรง 6 นิวตันไปทางซ้าย แรงลัพธ์มีขนาดเท่าใด (ตอบเป็นนิวตัน จำนวนเต็ม)",
+        "answer": { "value": 9, "tolerance": 0.5 },
+        "explanation": "แรงตรงข้ามหักล้าง = 15 - 6 = 9 นิวตัน ไปทางขวา"
+      }
+    ]
+  }
+}

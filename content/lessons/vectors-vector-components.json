@@ -1,0 +1,82 @@
+{
+  "slug": "vectors-vector-components",
+  "level": "senior",
+  "chapter": "vectors",
+  "sort_order": 3,
+  "title": "การแตกเวกเตอร์",
+  "summary": "การแตกเวกเตอร์คือการแยกเวกเตอร์ออกเป็นองค์ประกอบในแนวแกนตั้งฉาก เช่น แกน x และแกน y โดยใช้ตรีโกณมิติ",
+  "videos": [
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=V28CGU0vpZ8",
+      "youtube_id": "V28CGU0vpZ8",
+      "title": "สรุป ฟิสิกส์ ม.4 - แรงและกฎการเคลื่อนที่ ปริมาณเวกเตอร์ รวมเวกเตอร์ แตกเวกเตอร์",
+      "channel_name": "TUENONG",
+      "channel_url": "https://www.youtube.com/channel/UCq63wrwUoM4akEr09e9USQQ"
+    },
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=0nltg8benaA",
+      "youtube_id": "0nltg8benaA",
+      "title": "เวกเตอร์ (Vector) [ฟิสิกส์ ม.ต้น/ฟิสิกส์ ม.4] | Physics by ครูพี่เต้ย ออนดิมานด์",
+      "channel_name": "ติวฟิสิกส์ by Kruptoey",
+      "channel_url": "https://www.youtube.com/channel/UCBz_bPL0mKbx6uGD55iW90A"
+    }
+  ],
+  "animation": null,
+  "game": null,
+  "quiz": {
+    "title": "แบบทดสอบ: การแตกเวกเตอร์",
+    "pass_score": 60,
+    "questions": [
+      {
+        "type": "choice",
+        "body": "เวกเตอร์ F ทำมุม θ กับแกน x องค์ประกอบในแนวแกน x คือข้อใด",
+        "choices": [
+          "F sin θ",
+          "F",
+          "F cos θ",
+          "F / sin θ"
+        ],
+        "answer": 2,
+        "explanation": "องค์ประกอบในแนวแกนที่เวกเตอร์ทำมุมด้วยใช้ cos เป็น F cos θ ส่วนแนวตั้งฉากใช้ F sin θ"
+      },
+      {
+        "type": "choice",
+        "body": "เวกเตอร์ F ทำมุม θ กับแกน x องค์ประกอบในแนวแกน y คือข้อใด",
+        "choices": [
+          "F cos θ",
+          "F",
+          "F / cos θ",
+          "F sin θ"
+        ],
+        "answer": 3,
+        "explanation": "องค์ประกอบแนวแกน y (แกนที่ตั้งฉากกับมุม) ใช้ F sin θ"
+      },
+      {
+        "type": "choice",
+        "body": "เวกเตอร์ที่ขนานกับแกน x ล้วน ไม่มีองค์ประกอบในแนวใด",
+        "choices": [
+          "แกน y",
+          "แกน x",
+          "ทั้งแกน x และแกน y",
+          "ทุกแกน"
+        ],
+        "answer": 0,
+        "explanation": "เวกเตอร์ขนานแกน x มีองค์ประกอบในแนวแกน x เต็มขนาด และไม่มีองค์ประกอบในแนวแกน y เลย"
+      },
+      {
+        "type": "number",
+        "body": "แตกแรง 10 นิวตันซึ่งทำมุม 60 องศากับแกน x องค์ประกอบในแนวแกน x เป็นกี่นิวตัน (กำหนด cos 60° = 0.5 ตอบเป็นจำนวนเต็ม)",
+        "answer": { "value": 5, "tolerance": 0.5 },
+        "explanation": "F x = F cos θ = 10 x 0.5 = 5 นิวตัน"
+      },
+      {
+        "type": "number",
+        "body": "จากแรง 10 นิวตันทำมุม 60 องศากับแกน x องค์ประกอบในแนวแกน y เป็นกี่นิวตัน (กำหนด sin 60° ≈ 0.866 ตอบเป็นทศนิยม 1 ตำแหน่ง)",
+        "answer": { "value": 8.7, "tolerance": 0.05 },
+        "explanation": "F y = F sin θ = 10 x 0.866 = 8.66 ≈ 8.7 นิวตัน"
+      }
+    ]
+  }
+}

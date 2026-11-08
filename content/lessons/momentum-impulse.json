@@ -1,0 +1,82 @@
+{
+  "slug": "momentum-impulse",
+  "level": "senior",
+  "chapter": "momentum-collisions",
+  "sort_order": 1,
+  "title": "โมเมนตัมและการดล",
+  "summary": "โมเมนตัมคือผลคูณของมวลกับความเร็ว p = mv การดลเท่ากับแรงคูณเวลาและเท่ากับการเปลี่ยนแปลงโมเมนตัม",
+  "videos": [
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=l_3L0LBO1Mw",
+      "youtube_id": "l_3L0LBO1Mw",
+      "title": "ฟิสิกส์ ม.4 บทที่ 6 โมเมนตัมและการชน ep.1(โมเมนตัมและการเปลี่ยนแปลงโมเมนตัม)",
+      "channel_name": "ฟิสิกส์ by ครูโน้ต",
+      "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
+    },
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=YmpzRP-Hdxc",
+      "youtube_id": "YmpzRP-Hdxc",
+      "title": "ฟิสิกส์ ม.4 บทที่ 6 โมเมนตัมและการชน ep.2 (การเปลี่ยนแปลงโมเมนตัม การดล แรงดล)",
+      "channel_name": "ฟิสิกส์ by ครูโน้ต",
+      "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
+    }
+  ],
+  "animation": null,
+  "game": null,
+  "quiz": {
+    "title": "แบบทดสอบ: โมเมนตัมและการดล",
+    "pass_score": 60,
+    "questions": [
+      {
+        "type": "choice",
+        "body": "โมเมนตัม p ของวัตถุมวล m เคลื่อนที่ด้วยความเร็ว v มีค่าตามข้อใด",
+        "choices": [
+          "p = mv",
+          "p = ½mv²",
+          "p = mv²",
+          "p = m/v"
+        ],
+        "answer": 0,
+        "explanation": "โมเมนตัมคือผลคูณของมวลกับความเร็ว p = mv เป็นปริมาณเวกเตอร์มีหน่วยกิโลกรัม·เมตร/วินาที"
+      },
+      {
+        "type": "choice",
+        "body": "การดล (Impulse) ของแรงคงตัว F ที่กระทำต่อวัตถุเป็นเวลา t มีค่าตามข้อใด",
+        "choices": [
+          "F t",
+          "F / t",
+          "½Ft",
+          "Ft²"
+        ],
+        "answer": 1,
+        "explanation": "การดล = Ft และเท่ากับการเปลี่ยนแปลงโมเมนตัมของวัตถุตามทฤษฎีบทการดล-โมเมนตัม"
+      },
+      {
+        "type": "choice",
+        "body": "หน่วยของโมเมนตัมคือข้อใด",
+        "choices": [
+          "นิวตัน",
+          "จูล",
+          "กิโลกรัม·เมตร/วินาที",
+          "วัตต์"
+        ],
+        "answer": 2,
+        "explanation": "โมเมนตัม = มวล × ความเร็ว จึงมีหน่วย กิโลกรัม·เมตร/วินาที ซึ่งเทียบเท่านิวตัน·วินาที"
+      },
+      {
+        "type": "number",
+        "body": "วัตถุมวล 2 กิโลกรัม เคลื่อนที่ด้วยความเร็ว 5 เมตร/วินาที มีโมเมนตัมกี่กิโลกรัม·เมตร/วินาที",
+        "answer": { "value": 10, "tolerance": 0.5 },
+        "explanation": "p = mv = 2 × 5 = 10 กิโลกรัม·เมตร/วินาที"
+      },
+      {
+        "type": "number",
+        "body": "แรงขนาด 20 นิวตัน กระทำต่อวัตถุเป็นเวลา 3 วินาที การดลที่เกิดขึ้นมีค่ากี่นิวตัน·วินาที",
+        "answer": { "value": 60, "tolerance": 0.5 },
+        "explanation": "การดล = Ft = 20 × 3 = 60 นิวตัน·วินาที"
+      }
+    ]
+  }
+}

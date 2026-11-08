@@ -1,0 +1,88 @@
+{
+  "slug": "relativity-mass-energy-equivalence",
+  "level": "senior",
+  "chapter": "relativity",
+  "sort_order": 3,
+  "title": "ความสมมูลมวลและพลังงาน E = mc²",
+  "summary": "มวลและพลังงานเป็นสิ่งเดียวกันที่แปลงกลับไปมาได้ตามสมการ E = mc² มวลที่หายไปในปฏิกิริยานิวเคลียร์เปลี่ยนเป็นพลังงานมหาศาล คำนวณได้จาก E = Δmc²",
+  "videos": [
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=pIInlloy6lU",
+      "youtube_id": "pIInlloy6lU",
+      "title": "ทำไม E ถึงต้องเท่ากับ mc2",
+      "channel_name": "LeoGoPhysics",
+      "channel_url": "https://www.youtube.com/channel/UCXTtVSnE6eoYoLEgU5ohktw"
+    },
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=UqoqOZV4vZQ",
+      "youtube_id": "UqoqOZV4vZQ",
+      "title": "ทฤษฎีสัมพัทธภาพพิเศษ (Special Theory of Relativity) | Eureka ท่องโลกวิทยาการ",
+      "channel_name": "Thai PBS Podcast",
+      "channel_url": "https://www.youtube.com/channel/UCTEJUaLR8pj_km6ZU25voMQ"
+    }
+  ],
+  "animation": null,
+  "game": null,
+  "quiz": {
+    "title": "แบบทดสอบ: ความสมมูลมวลและพลังงาน E = mc²",
+    "pass_score": 60,
+    "questions": [
+      {
+        "type": "choice",
+        "body": "สมการความสมมูลมวลและพลังงานตามไอน์สไตน์คือข้อใด",
+        "choices": [
+          "E = mc²",
+          "E = mgh",
+          "E = hf",
+          "E = ½mv²"
+        ],
+        "answer": 0,
+        "explanation": "E = mc² เป็นสมการความสมมูลมวลพลังงาน โดย c คืออัตราเร็วแสง พลังงานมหาศาลเกิดจากมวลแม้เพียงเล็กน้อย เพราะ c² มีค่ามาก"
+      },
+      {
+        "type": "choice",
+        "body": "เมื่อมวล 1 กิโลกรัม เปลี่ยนเป็นพลังงาน พลังงานที่ได้มีขนาดประมาณเท่าใด",
+        "choices": [
+          "เป็นศูนย์",
+          "เท่ากับ c จูล",
+          "เท่ากับ c² จูล ซึ่งมีค่ามหาศาล",
+          "เท่ากับ ½c² จูล"
+        ],
+        "answer": 2,
+        "explanation": "E = mc² โดย c มีค่ามาก จึงได้พลังงานมหาศาลจากมวลเพียงเล็กน้อย แสดงถึงหลักการที่มวลสามารถเปลี่ยนเป็นพลังงานได้มหาศาล"
+      },
+      {
+        "type": "choice",
+        "body": "ในปฏิกิริยานิวเคลียร์ มวลรวมของผลิตภัณฑ์น้อยกว่ามวลรวมของสารตั้งต้น มวลที่หายไปไปอยู่ที่ใด",
+        "choices": [
+          "กลายเป็นประจุ",
+          "สะสมอยู่ในนิวตรอน",
+          "ถูกทำลายไปอย่างสิ้นเชิง",
+          "เปลี่ยนเป็นพลังงานตาม E = Δmc²"
+        ],
+        "answer": 3,
+        "explanation": "มวลที่ลดลง (มวลพร่อง) เปลี่ยนเป็นพลังงานตามสมการ E = Δmc² มวลมหายไปโดยไม่ถูกทำลายโดยตรง แต่แปลงเป็นพลังงานจลน์และพลังงานรูปแบบอื่น"
+      },
+      {
+        "type": "number",
+        "body": "ตามสมการ E = mc² ถ้ามวลเพิ่มเป็น 2 เท่า โดยความเร็วแสงคงที่ พลังงานจะเพิ่มขึ้นเป็นกี่เท่าของเดิม (ตอบเป็นจำนวนเต็ม)",
+        "answer": {
+          "value": 2,
+          "tolerance": 0.05
+        },
+        "explanation": "E = mc² แปรผันตรงกับ m เมื่อ m เป็น 2 เท่า E จึงเป็น 2 เท่า"
+      },
+      {
+        "type": "number",
+        "body": "ตามสมการ E = mc² วัตถุก้อนหนึ่งมีพลังงาน 12 จูล แล้วเพิ่มมวลเป็น 3 เท่า โดยไม่เปลี่ยนค่าคงที่ พลังงานใหม่เป็นกี่จูล (ตอบเป็นจำนวนเต็ม)",
+        "answer": {
+          "value": 36,
+          "tolerance": 0.5
+        },
+        "explanation": "E = mc² แปรผันตรงกับ m พลังงานใหม่ = 3 × 12 = 36 จูล"
+      }
+    ]
+  }
+}

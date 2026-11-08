@@ -1,0 +1,82 @@
+{
+  "slug": "vectors-scalar-vector",
+  "level": "senior",
+  "chapter": "vectors",
+  "sort_order": 1,
+  "title": "ปริมาณเวกเตอร์และสเกลาร์",
+  "summary": "ปริมาณสเกลาร์มีเพียงขนาด ส่วนปริมาณเวกเตอร์มีทั้งขนาดและทิศทาง เช่น แรงและความเร็วเป็นเวกเตอร์ ระยะทางเป็นสเกลาร์",
+  "videos": [
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=V28CGU0vpZ8",
+      "youtube_id": "V28CGU0vpZ8",
+      "title": "สรุป ฟิสิกส์ ม.4 - แรงและกฎการเคลื่อนที่ ปริมาณเวกเตอร์ รวมเวกเตอร์ แตกเวกเตอร์",
+      "channel_name": "TUENONG",
+      "channel_url": "https://www.youtube.com/channel/UCq63wrwUoM4akEr09e9USQQ"
+    },
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=dpCw31To-sU",
+      "youtube_id": "dpCw31To-sU",
+      "title": "I know MATH ep.9 - เวกเตอร์ (Part 1 : พื้นฐานของเวกเตอร์)",
+      "channel_name": "I know PHYSICs a little",
+      "channel_url": "https://www.youtube.com/channel/UC0qWWV4YLpxnAQGJ8ednXlA"
+    }
+  ],
+  "animation": null,
+  "game": null,
+  "quiz": {
+    "title": "แบบทดสอบ: ปริมาณเวกเตอร์และสเกลาร์",
+    "pass_score": 60,
+    "questions": [
+      {
+        "type": "choice",
+        "body": "ข้อใดเป็นปริมาณเวกเตอร์",
+        "choices": [
+          "ความเร็ว",
+          "มวล",
+          "ระยะทาง",
+          "อุณหภูมิ"
+        ],
+        "answer": 0,
+        "explanation": "ความเร็วมีทั้งขนาดและทิศทางจึงเป็นเวกเตอร์ ส่วนมวล ระยะทาง และอุณหภูมิมีเพียงขนาดจึงเป็นสเกลาร์"
+      },
+      {
+        "type": "choice",
+        "body": "ข้อใดเป็นปริมาณสเกลาร์",
+        "choices": [
+          "แรง",
+          "ระยะทาง",
+          "ความเร็ว",
+          "การกระจัด"
+        ],
+        "answer": 1,
+        "explanation": "ระยะทางมีเพียงขนาดจึงเป็นสเกลาร์ ส่วนแรง ความเร็ว และการกระจัดมีทิศทางจึงเป็นเวกเตอร์"
+      },
+      {
+        "type": "choice",
+        "body": "ข้อใดต่างจากข้ออื่นในเรื่องการเป็นเวกเตอร์หรือสเกลาร์",
+        "choices": [
+          "แรง",
+          "ความเร่ง",
+          "ระยะทาง",
+          "ความเร็ว"
+        ],
+        "answer": 2,
+        "explanation": "แรง ความเร่ง และความเร็วเป็นเวกเตอร์ ส่วนระยะทางเป็นสเกลาร์ จึงเป็นข้อที่ต่างจากข้ออื่น"
+      },
+      {
+        "type": "number",
+        "body": "เวกเตอร์ขนาด 3 หน่วยกับ 4 หน่วยตั้งฉากกัน เวกเตอร์ลัพธ์มีขนาดกี่หน่วย (ตอบเป็นจำนวนเต็ม)",
+        "answer": { "value": 5, "tolerance": 0.5 },
+        "explanation": "เวกเตอร์ลัพธ์ = √(3² + 4²) = √25 = 5 หน่วย ตามทฤษฎีบทพีทาโกรัส"
+      },
+      {
+        "type": "number",
+        "body": "วัตถุเคลื่อนที่ไปทางทิศตะวันออก 6 เมตร แล้วไปทางทิศเหนือ 8 เมตร การกระจัดมีขนาดกี่เมตร (ตอบเป็นเมตร จำนวนเต็ม)",
+        "answer": { "value": 10, "tolerance": 0.5 },
+        "explanation": "การกระจัด = √(6² + 8²) = √100 = 10 เมตร"
+      }
+    ]
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "slug": "units-measurement-significant-figures",
+  "level": "senior",
+  "chapter": "units-measurement",
+  "sort_order": 3,
+  "title": "เลขนัยสำคัญ",
+  "summary": "เลขนัยสำคัญคือตัวเลขที่บอกความแม่นยำของการวัด เลขที่ไม่ใช่ศูนย์ทุกตัวเป็นนัยสำคัญ ส่วนศูนย์นับหรือไม่ขึ้นกับตำแหน่ง",
+  "videos": [
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=8dDzVzWm3vE",
+      "youtube_id": "8dDzVzWm3vE",
+      "title": "เลขนัยสำคัญ (ฟิสิกส์ ม.4 เล่ม 1 บทที่ 1)",
+      "channel_name": "Proj14 ม.4 เพิ่มเติม",
+      "channel_url": "https://www.youtube.com/channel/UC_y0OZQoEJITrvWBTOizvKQ"
+    },
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=c05G0SqJY9I",
+      "youtube_id": "c05G0SqJY9I",
+      "title": "ฟิสิกส์ ม.4 บทที่ 1 ธรรมชาติและพัฒนาการทางฟิสิกส์ ep.4",
+      "channel_name": "ฟิสิกส์ by ครูโน้ต",
+      "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
+    }
+  ],
+  "animation": null,
+  "game": null,
+  "quiz": {
+    "title": "แบบทดสอบ: เลขนัยสำคัญ",
+    "pass_score": 60,
+    "questions": [
+      {
+        "type": "choice",
+        "body": "จำนวน 25.0 มีเลขนัยสำคัญกี่ตัว",
+        "choices": [
+          "3 ตัว",
+          "2 ตัว",
+          "1 ตัว",
+          "4 ตัว"
+        ],
+        "answer": 0,
+        "explanation": "ศูนย์ท้ายหลังจุดทศนิยมนับเป็นนัยสำคัญ เพราะบอกความแม่นยำ ตัวเลข 2, 5 และ 0 จึงรวมเป็น 3 ตัว"
+      },
+      {
+        "type": "choice",
+        "body": "จำนวน 0.0045 มีเลขนัยสำคัญกี่ตัว",
+        "choices": [
+          "4 ตัว",
+          "2 ตัว",
+          "3 ตัว",
+          "5 ตัว"
+        ],
+        "answer": 1,
+        "explanation": "ศูนย์ที่อยู่หน้าตัวเลขไม่ใช่ตัวบอกตำแหน่งและไม่นับความแม่นยำ จึงนับเฉพาะ 4 และ 5 รวมเป็น 2 ตัว"
+      },
+      {
+        "type": "choice",
+        "body": "ผลบวก 12.1 + 3.25 ตามกฎเลขนัยสำคัญควรตอบด้วยทศนิยมกี่ตำแหน่ง",
+        "choices": [
+          "2 ตำแหน่ง",
+          "3 ตำแหน่ง",
+          "1 ตำแหน่ง",
+          "4 ตำแหน่ง"
+        ],
+        "answer": 2,
+        "explanation": "การบวกลบ ให้ตอบตามจำนวนทศนิยมของตัวที่มีทศนิยมน้อยที่สุด คือ 12.1 ซึ่งมี 1 ตำแหน่ง จึงตอบ 1 ตำแหน่ง"
+      },
+      {
+        "type": "number",
+        "body": "จำนวน 345 มีเลขนัยสำคัญกี่ตัว (ตอบเป็นจำนวนเต็ม)",
+        "answer": { "value": 3, "tolerance": 0.5 },
+        "explanation": "เลข 3, 4, 5 ล้วนไม่ใช่ศูนย์และเป็นนัยสำคัญทุกตัว จึงมี 3 ตัว"
+      },
+      {
+        "type": "number",
+        "body": "จำนวน 0.050 มีเลขนัยสำคัญกี่ตัว (ตอบเป็นจำนวนเต็ม)",
+        "answer": { "value": 2, "tolerance": 0.5 },
+        "explanation": "ศูนย์แรกหน้าเลข 5 ไม่นับ ส่วนศูนย์ท้ายหลังเลข 5 และหลังจุดทศนิยมนับ จึงมี 2 ตัว (5 และ 0)"
+      }
+    ]
+  }
+}

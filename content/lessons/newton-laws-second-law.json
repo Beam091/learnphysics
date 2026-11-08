@@ -1,0 +1,82 @@
+{
+  "slug": "newton-laws-second-law",
+  "level": "senior",
+  "chapter": "newton-laws",
+  "sort_order": 3,
+  "title": "กฎข้อที่ 2 ของนิวตัน",
+  "summary": "กฎข้อที่ 2 กล่าวว่า แรงลัพธ์เท่ากับมวลคูณความเร่ง F = ma ความเร่งแปรผันตรงกับแรงและแปรผกผันกับมวล",
+  "videos": [
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=49kgcKlI6Zg",
+      "youtube_id": "49kgcKlI6Zg",
+      "title": "3.3 แรงและกฎการเคลื่อนที่ของนิวตัน (Newton's Laws of Motion) | ฟิสิกส์ ม.4 เทอม 1 | ฟิสิกส์ ม.ปลาย",
+      "channel_name": "ปลาอะคาเดมี",
+      "channel_url": "https://www.youtube.com/channel/UCtTD069k4v4IAHpf708ykeQ"
+    },
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=6zSI0tYtt98",
+      "youtube_id": "6zSI0tYtt98",
+      "title": "ฟิสิกส์ ม.4 บทที่ 3 แรงและกฎการเคลื่อนที่ ep.5(โจทย์กฎการเคลื่อนที่ของนิวตัน)",
+      "channel_name": "ฟิสิกส์ by ครูโน้ต",
+      "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
+    }
+  ],
+  "animation": null,
+  "game": null,
+  "quiz": {
+    "title": "แบบทดสอบ: กฎข้อที่ 2 ของนิวตัน",
+    "pass_score": 60,
+    "questions": [
+      {
+        "type": "choice",
+        "body": "กฎข้อที่ 2 ของนิวตันเขียนเป็นสมการได้ดังนี้",
+        "choices": [
+          "F = m / v",
+          "F = m + a",
+          "F = m x g",
+          "F = ma"
+        ],
+        "answer": 3,
+        "explanation": "กฎข้อที่ 2 คือ F = ma หรือแรงลัพธ์เท่ากับมวลคูณความเร่ง นั่นคือ a = F/m"
+      },
+      {
+        "type": "choice",
+        "body": "ถ้าแรงลัพธ์คงที่แล้วเพิ่มมวลเป็น 2 เท่า ความเร่งของวัตถุเป็นเท่าใดเมื่อเทียบกับเดิม",
+        "choices": [
+          "ครึ่งหนึ่งของเดิม",
+          "เท่าเดิม",
+          "สองเท่าของเดิม",
+          "สี่เท่าของเดิม"
+        ],
+        "answer": 0,
+        "explanation": "a = F/m เมื่อมวลเพิ่มเป็น 2 เท่าด้วยแรงเท่าเดิม ความเร่งจึงลดลงเป็นครึ่งหนึ่ง"
+      },
+      {
+        "type": "choice",
+        "body": "แรงลัพธ์ 10 นิวตันกระทำกับมวล 2 กิโลกรัม ความเร่งเป็นเท่าใด",
+        "choices": [
+          "20 เมตร/วินาที²",
+          "5 เมตร/วินาที²",
+          "0.2 เมตร/วินาที²",
+          "12 เมตร/วินาที²"
+        ],
+        "answer": 1,
+        "explanation": "a = F/m = 10 / 2 = 5 เมตร/วินาที²"
+      },
+      {
+        "type": "number",
+        "body": "แรงลัพธ์ 30 นิวตันกระทำกับมวล 6 กิโลกรัม ความเร่งเป็นเท่าใด (ตอบเป็นเมตร/วินาที² จำนวนเต็ม)",
+        "answer": { "value": 5, "tolerance": 0.5 },
+        "explanation": "a = F/m = 30 / 6 = 5 เมตร/วินาที²"
+      },
+      {
+        "type": "number",
+        "body": "แรงลัพธ์ 45 นิวตันทำให้วัตถุมีความเร่ง 5 เมตร/วินาที² มวลของวัตถุเป็นเท่าใด (ตอบเป็นกิโลกรัม จำนวนเต็ม)",
+        "answer": { "value": 9, "tolerance": 0.5 },
+        "explanation": "m = F/a = 45 / 5 = 9 กิโลกรัม"
+      }
+    ]
+  }
+}

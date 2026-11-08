@@ -1,0 +1,82 @@
+{
+  "slug": "work-energy-constant-force",
+  "level": "senior",
+  "chapter": "work-energy",
+  "sort_order": 1,
+  "title": "งานโดยแรงคงตัว",
+  "summary": "งานคือผลคูณของแรงกับระยะกระจัดในทิศของแรง W = Fs cos θ มีหน่วยเป็นจูล งานเป็นศูนย์เมื่อแรงตั้งฉากกับแนวการเคลื่อนที่",
+  "videos": [
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=1ShY0B3hTOY",
+      "youtube_id": "1ShY0B3hTOY",
+      "title": "ฟิสิกส์ ม.4 บทที่ 5 งานและพลังงาน ep.1 (งาน)",
+      "channel_name": "ฟิสิกส์ by ครูโน้ต",
+      "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
+    },
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=bNzj4t6Edtk",
+      "youtube_id": "bNzj4t6Edtk",
+      "title": "ฟิสิกส์ ม.4 บทที่ 5 งานและพลังงาน ep.2 (งานพื้นที่ใต้กราฟ, กำลัง)",
+      "channel_name": "ฟิสิกส์ by ครูโน้ต",
+      "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
+    }
+  ],
+  "animation": null,
+  "game": null,
+  "quiz": {
+    "title": "แบบทดสอบ: งานโดยแรงคงตัว",
+    "pass_score": 60,
+    "questions": [
+      {
+        "type": "choice",
+        "body": "งานที่แรงคงตัว F กระทำต่อวัตถุที่เคลื่อนที่ระยะทาง s โดย θ คือมุมระหว่างแรงกับแนวการเคลื่อนที่ หาได้จากสูตรใด",
+        "choices": [
+          "W = F s sin θ",
+          "W = F s cos θ",
+          "W = F s",
+          "W = F s / cos θ"
+        ],
+        "answer": 1,
+        "explanation": "งานนิยามเป็นผลคูณของแรงกับระยะกระจัดในทิศของแรง จึงเป็น W = Fs cos θ"
+      },
+      {
+        "type": "choice",
+        "body": "หน่วยของงานในระบบเอสไอคือข้อใด",
+        "choices": [
+          "นิวตัน",
+          "วัตต์",
+          "จูล",
+          "กิโลกรัมเมตร"
+        ],
+        "answer": 2,
+        "explanation": "งานมีหน่วยเป็นจูล โดย 1 จูล = 1 นิวตัน × 1 เมตร"
+      },
+      {
+        "type": "choice",
+        "body": "แรงกระทำตั้งฉากกับแนวการเคลื่อนที่ของวัตถุตลอดทาง งานของแรงนี้มีค่าเท่าใด",
+        "choices": [
+          "เท่ากับผลคูณของแรงกับระยะทาง",
+          "เป็นศูนย์",
+          "เท่ากับครึ่งหนึ่งของผลคูณ",
+          "ติดลบ"
+        ],
+        "answer": 0,
+        "explanation": "เมื่อ θ = 90 องศา cos θ = 0 งานจึงเป็นศูนย์ เช่นแรงสู่ศูนย์กลางตั้งฉากกับความเร็วไม่ทำงาน"
+      },
+      {
+        "type": "number",
+        "body": "ใช้แรง 20 นิวตัน ผลักกล่องในแนวตรงไปตามพื้นราบ ระยะ 5 เมตร ในทิศเดียวกับแรง งานที่ทำมีค่ากี่จูล",
+        "answer": { "value": 100, "tolerance": 0.5 },
+        "explanation": "W = Fs = 20 × 5 = 100 จูล เพราะแรงและระยะทางอยู่ในทิศเดียวกัน"
+      },
+      {
+        "type": "number",
+        "body": "ใช้แรง 50 นิวตัน ดึงวัตถุทำมุม 60 องศากับแนวการเคลื่อนที่ ไปเป็นระยะ 4 เมตร งานที่ทำมีค่ากี่จูล (cos 60° = 0.5)",
+        "answer": { "value": 100, "tolerance": 0.5 },
+        "explanation": "W = Fs cos θ = 50 × 4 × cos 60° = 50 × 4 × 0.5 = 100 จูล"
+      }
+    ]
+  }
+}

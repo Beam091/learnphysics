@@ -1,0 +1,96 @@
+{
+  "slug": "projectile-range-time",
+  "level": "senior",
+  "chapter": "projectile",
+  "sort_order": 3,
+  "title": "ระยะไกลสุดและเวลาบิน",
+  "summary": "เวลาบิน T = 2v sin θ / g และระยะไกลสุด R = v² sin 2θ / g ระยะไกลที่สุดเมื่อยิงมุม 45 องศา",
+  "videos": [
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=ZrFyxC3x3-w",
+      "youtube_id": "ZrFyxC3x3-w",
+      "title": "ฟิสิกส์ ม.4 บทที่ 7 การเคลื่อนที่แนวโค้ง ep.2 (การเคลื่อนที่แบบโพรเจกไทล์)",
+      "channel_name": "ฟิสิกส์ by ครูโน้ต",
+      "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
+    },
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=UTMXSCv2Slo",
+      "youtube_id": "UTMXSCv2Slo",
+      "title": "ฟิสิกส์ ม.4 บทที่ 7 การเคลื่อนที่แนวโค้ง ep.1 (การเคลื่อนที่แบบโพรเจกไทล์)",
+      "channel_name": "ฟิสิกส์ by ครูโน้ต",
+      "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
+    }
+  ],
+  "animation": {
+    "engine": "projectile",
+    "title": "ปรับมุมและความเร็ว แล้วดูระยะไกลและเวลาบิน",
+    "config": {
+      "angle": { "min": 10, "max": 80, "default": 45 },
+      "speed": { "min": 10, "max": 40, "default": 25 }
+    }
+  },
+  "game": {
+    "template": "aim-and-shoot",
+    "title": "ยิงให้โดนเป้า: ปรับมุมและความเร็ว",
+    "config": {
+      "targetDistance": [40, 120],
+      "tolerance": 3
+    }
+  },
+  "quiz": {
+    "title": "แบบทดสอบ: ระยะไกลสุดและเวลาบิน",
+    "pass_score": 60,
+    "questions": [
+      {
+        "type": "choice",
+        "body": "เมื่อความเร็วต้นเท่ากันและไม่คิดแรงต้านอากาศ มุมยิงใดให้ระยะทางแนวราบไกลที่สุด",
+        "choices": [
+          "30 องศา",
+          "60 องศา",
+          "90 องศา",
+          "45 องศา"
+        ],
+        "answer": 3,
+        "explanation": "R = v² sin 2θ / g มีค่ามากสุดเมื่อ sin 2θ = 1 นั่นคือ 2θ = 90 หรือ θ = 45 องศา"
+      },
+      {
+        "type": "choice",
+        "body": "ยิงด้วยความเร็วต้นเท่ากันที่มุม 30 องศากับมุม 60 องศา ระยะไกลสุดเป็นอย่างไร",
+        "choices": [
+          "เท่ากัน",
+          "มุม 30 องศาไกลกว่า",
+          "มุม 60 องศาไกลกว่า",
+          "มุม 60 องศาไกลเป็นสองเท่า"
+        ],
+        "answer": 0,
+        "explanation": "sin 2θ ของ 30° คือ sin 60° และของ 60° คือ sin 120° ซึ่งเท่ากัน ระยะไกลจึงเท่ากัน"
+      },
+      {
+        "type": "choice",
+        "body": "เวลาบินของโพรเจกไทล์ขึ้นกับปัจจัยใดเป็นหลัก",
+        "choices": [
+          "ระยะทางแนวราบล้วน",
+          "ความเร็วเริ่มต้นในแนวตั้ง",
+          "มวลของวัตถุ",
+          "ความเร็วแนวราบเท่านั้น"
+        ],
+        "answer": 1,
+        "explanation": "เวลาบิน T = 2v sin θ / g ขึ้นกับความเร็วเริ่มต้นในแนวตั้ง (v sin θ) ไม่ขึ้นกับมวล"
+      },
+      {
+        "type": "number",
+        "body": "ยิงด้วยความเร็วต้น 20 เมตร/วินาทีที่มุม 30 องศากับแนวราบ เวลาบินเป็นเท่าใด (ใช้ g = 10 เมตร/วินาที² และ sin 30° = 0.5 ตอบเป็นวินาที จำนวนเต็ม)",
+        "answer": { "value": 2, "tolerance": 0.5 },
+        "explanation": "T = 2v sin θ / g = 2 x 20 x 0.5 / 10 = 2 วินาที"
+      },
+      {
+        "type": "number",
+        "body": "ยิงด้วยความเร็วต้น 20 เมตร/วินาทีที่มุม 30 องศากับแนวราบ ระยะไกลสุดเป็นเท่าใด (ใช้ g = 10 เมตร/วินาที² และ sin 60° ≈ 0.866 ตอบเป็นเมตร ทศนิยม 1 ตำแหน่ง)",
+        "answer": { "value": 34.6, "tolerance": 0.05 },
+        "explanation": "R = v² sin 2θ / g = 400 x 0.866 / 10 = 34.64 ≈ 34.6 เมตร"
+      }
+    ]
+  }
+}

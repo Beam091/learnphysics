@@ -1,0 +1,82 @@
+{
+  "slug": "units-measurement-unit-conversion",
+  "level": "senior",
+  "chapter": "units-measurement",
+  "sort_order": 2,
+  "title": "การเปลี่ยนหน่วย",
+  "summary": "การเปลี่ยนหน่วยทำโดยคูณหรือหารด้วยตัวคูณที่เท่ากันระหว่างหน่วย เช่น 1 กิโลเมตร = 1000 เมตร และ 1 ชั่วโมง = 3600 วินาที",
+  "videos": [
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=Dt9uYyEtfhw",
+      "youtube_id": "Dt9uYyEtfhw",
+      "title": "เทคนิคการเปลี่ยนหน่วย (ฟิสิกส์ ม.4) | พี่ตั้ว Physics Blueprint",
+      "channel_name": "Physics Blueprint",
+      "channel_url": "https://www.youtube.com/channel/UC2lnNoiwHi_X-pwkHTrfC2g"
+    },
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=DBCcB_3jQPk",
+      "youtube_id": "DBCcB_3jQPk",
+      "title": "ฟิสิกส์ ม. 4 บทที่ 1 ธรรมชาติและพัฒนาการทางฟิสิกส์ ep.3",
+      "channel_name": "ฟิสิกส์ by ครูโน้ต",
+      "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
+    }
+  ],
+  "animation": null,
+  "game": null,
+  "quiz": {
+    "title": "แบบทดสอบ: การเปลี่ยนหน่วย",
+    "pass_score": 60,
+    "questions": [
+      {
+        "type": "choice",
+        "body": "1 กิโลเมตรมีค่าเท่ากับเท่าใด",
+        "choices": [
+          "100 เมตร",
+          "1000 เมตร",
+          "10000 เมตร",
+          "10 เมตร"
+        ],
+        "answer": 1,
+        "explanation": "คำนำหน้า กิโล มีค่า 1000 จึงได้ 1 กิโลเมตร = 1000 เมตร"
+      },
+      {
+        "type": "choice",
+        "body": "ความเร็ว 72 กิโลเมตร/ชั่วโมงคิดเป็นกี่เมตร/วินาที",
+        "choices": [
+          "72 เมตร/วินาที",
+          "2 เมตร/วินาที",
+          "20 เมตร/วินาที",
+          "7200 เมตร/วินาที"
+        ],
+        "answer": 2,
+        "explanation": "(72 x 1000)/3600 = 20 เมตร/วินาที เพราะ 1 กม. = 1000 ม. และ 1 ชม. = 3600 วินาที"
+      },
+      {
+        "type": "choice",
+        "body": "ความยาว 500 เซนติเมตรคิดเป็นกี่เมตร",
+        "choices": [
+          "5000 เมตร",
+          "0.05 เมตร",
+          "50 เมตร",
+          "5 เมตร"
+        ],
+        "answer": 3,
+        "explanation": "1 เมตร = 100 เซนติเมตร จึงได้ 500 / 100 = 5 เมตร"
+      },
+      {
+        "type": "number",
+        "body": "ระยะทาง 2.5 กิโลเมตรเป็นกี่เมตร (ตอบเป็นเมตร จำนวนเต็ม)",
+        "answer": { "value": 2500, "tolerance": 0.5 },
+        "explanation": "2.5 x 1000 = 2500 เมตร"
+      },
+      {
+        "type": "number",
+        "body": "ความเร็ว 54 กิโลเมตร/ชั่วโมงคิดเป็นกี่เมตร/วินาที (ตอบเป็นเมตร/วินาที จำนวนเต็ม)",
+        "answer": { "value": 15, "tolerance": 0.5 },
+        "explanation": "(54 x 1000)/3600 = 15 เมตร/วินาที"
+      }
+    ]
+  }
+}
