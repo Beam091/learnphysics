@@ -328,6 +328,12 @@ button.secondary:hover { background: var(--mark); border-color: var(--ink); colo
 
 .site-footer p { margin: 4px 0; max-width: 46em; }
 
+.site-version {
+  margin-top: 14px;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
