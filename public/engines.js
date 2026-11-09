@@ -227,6 +227,7 @@
       var x1 = 200 - d / 2, x2 = 200 + d / 2, y = 80, rad = 20;
       var L = 14 + 14 * Math.log10(1 + 100 * F);
       if (opposite) L = Math.min(L, (d - 2 * rad) / 2 - 6);
+      else L = Math.min(L, x1 - rad - 14);
 
       svgEl(svg, "line", { x1: x1, y1: 136, x2: x2, y2: 136, class: "g-axis" });
       svgEl(svg, "text", { x: 200, y: 172, "text-anchor": "middle", class: "g-label" }).textContent = "r = " + r.toFixed(2) + " ม.";
@@ -982,6 +983,7 @@
     var rc = config.radius || { min: 0.5, max: 4, step: 0.5, default: 2 };
     var kc = config.springK || { min: 8, max: 80, step: 4, default: 32 };
     var interacted = false, frame = null;
+    var isVisible = true;
 
     function interact() { if (!interacted) { interacted = true; if (opts.onInteract) opts.onInteract(); } }
 
@@ -1049,23 +1051,52 @@
       fOut.textContent = f.toFixed(2) + " เฮิรตซ์";
     }
 
+    function loop(now) {
+      if (!isVisible) {
+        frame = null;
+        return;
+      }
+      var dt = (now - lastTime) / 1000;
+      lastTime = now;
+      var m = Number(mF.input.value), k = Number(kF.input.value);
+      var w = Math.sqrt(k / m);
+      angle += w * dt;
+      renderFrame(angle);
+      frame = requestAnimationFrame(loop);
+    }
+
     function update() {
-      if (frame !== null) cancelAnimationFrame(frame);
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+        frame = null;
+      }
       if (reducedMotion()) {
         renderFrame(Math.PI / 4);
         return;
       }
-      lastTime = performance.now();
-      function loop(now) {
-        var dt = (now - lastTime) / 1000;
-        lastTime = now;
-        var m = Number(mF.input.value), k = Number(kF.input.value);
-        var w = Math.sqrt(k / m);
-        angle += w * dt;
+      if (!isVisible) {
         renderFrame(angle);
-        frame = requestAnimationFrame(loop);
+        return;
       }
+      lastTime = performance.now();
       frame = requestAnimationFrame(loop);
+    }
+
+    if (typeof window !== "undefined" && "IntersectionObserver" in window) {
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          var wasVisible = isVisible;
+          isVisible = entry.isIntersecting;
+          if (isVisible && !wasVisible && !reducedMotion()) {
+            lastTime = performance.now();
+            if (frame === null) frame = requestAnimationFrame(loop);
+          } else if (!isVisible && frame !== null) {
+            cancelAnimationFrame(frame);
+            frame = null;
+          }
+        });
+      });
+      observer.observe(svg);
     }
 
     container.appendChild(svg);
@@ -1146,8 +1177,10 @@
       svgEl(svg, "rect", { x: objX, y: objY, width: objW, height: objH, class: "target", rx: 3 });
       svgEl(svg, "text", { x: objX + objW / 2, y: objY + objH / 2 + 5, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = rhoObj + " kg/m³";
 
-      drawArrow(svg, objX + objW / 2, objY, objX + objW / 2, objY - 35);
-      svgEl(svg, "text", { x: objX + objW / 2 + 6, y: objY - 20, class: "g-label", "font-size": "14px" }).textContent = "F_B=" + FB.toFixed(1) + "N";
+      var fbTipY = Math.max(18, objY - 35);
+      drawArrow(svg, objX + objW / 2, objY, objX + objW / 2, fbTipY);
+      var fbLabelY = Math.max(26, objY - 20);
+      svgEl(svg, "text", { x: objX + objW / 2 + 6, y: fbLabelY, class: "g-label", "font-size": "14px" }).textContent = "F_B=" + FB.toFixed(1) + "N";
       drawArrow(svg, objX + objW / 2, objY + objH, objX + objW / 2, objY + objH + 35);
       svgEl(svg, "text", { x: objX + objW / 2 + 6, y: objY + objH + 28, class: "g-label", "font-size": "14px" }).textContent = "W=" + weightObj.toFixed(1) + "N";
 
@@ -1177,6 +1210,7 @@
     var vc = config.volume || { min: 2, max: 10, step: 0.5, default: 5 };
     var nc = config.moles || { min: 0.5, max: 3.0, step: 0.5, default: 1.0 };
     var R = 8.314, interacted = false, frame = null;
+    var isVisible = true;
 
     function interact() { if (!interacted) { interacted = true; if (opts.onInteract) opts.onInteract(); } }
 
@@ -1255,20 +1289,49 @@
       pvOut.textContent = (n * R).toFixed(2) + " J/K";
     }
 
+    function loop(now) {
+      if (!isVisible) {
+        frame = null;
+        return;
+      }
+      var dt = (now - lastNow) / 1000;
+      lastNow = now;
+      render(Math.min(0.05, dt));
+      frame = requestAnimationFrame(loop);
+    }
+
     function update() {
-      if (frame !== null) cancelAnimationFrame(frame);
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+        frame = null;
+      }
       if (reducedMotion()) {
         render(0);
         return;
       }
-      lastNow = performance.now();
-      function loop(now) {
-        var dt = (now - lastNow) / 1000;
-        lastNow = now;
-        render(Math.min(0.05, dt));
-        frame = requestAnimationFrame(loop);
+      if (!isVisible) {
+        render(0);
+        return;
       }
+      lastNow = performance.now();
       frame = requestAnimationFrame(loop);
+    }
+
+    if (typeof window !== "undefined" && "IntersectionObserver" in window) {
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          var wasVisible = isVisible;
+          isVisible = entry.isIntersecting;
+          if (isVisible && !wasVisible && !reducedMotion()) {
+            lastNow = performance.now();
+            if (frame === null) frame = requestAnimationFrame(loop);
+          } else if (!isVisible && frame !== null) {
+            cancelAnimationFrame(frame);
+            frame = null;
+          }
+        });
+      });
+      observer.observe(svg);
     }
 
     container.appendChild(svg);
@@ -1339,10 +1402,23 @@
       svgEl(svg, "text", { x: objX, y: midY + 18, "text-anchor": "middle", class: "g-label", "font-size": "14px" }).textContent = "วัตถุ";
 
       var sDiff = s - F;
-      if (Math.abs(sDiff) < 0.1) {
+      if (Math.abs(s - fVal) < 0.01 && !isConcave) {
         spOut.textContent = "ระยะอนันต์ (∞)";
         mOut.textContent = "-";
-        kindOut.textContent = "รังสีขนาน ไม่เกิดภาพ";
+        kindOut.textContent = "รังสีขนานกัน (เกิดภาพที่ระยะอนันต์)";
+
+        var extX = Math.min(640, midX + fPix * 2.5);
+        var extY1 = (midY - objH) + ((extX - midX) / fPix) * objH;
+        var extY2 = midY + ((extX - midX) / fPix) * objH;
+
+        // รังสีเส้นที่ 1: ขนานแกนมุขสำคัญแล้วหักเหผ่านจุดโฟกัส F
+        svgEl(svg, "line", { x1: objX, y1: midY - objH, x2: midX, y2: midY - objH, class: "ray" });
+        svgEl(svg, "line", { x1: midX, y1: midY - objH, x2: extX, y2: extY1, class: "ray" });
+
+        // รังสีเส้นที่ 2: ผ่านจุดศูนย์กลางเลนส์ (midX, midY)
+        svgEl(svg, "line", { x1: objX, y1: midY - objH, x2: extX, y2: extY2, class: "ray" });
+
+        svgEl(svg, "text", { x: midX + 150, y: midY - 35, "text-anchor": "middle", class: "g-label", "font-size": "14px" }).textContent = "รังสีขนานกัน (เกิดภาพที่ระยะอนันต์)";
         return;
       }
 
@@ -1685,7 +1761,7 @@
             drawArrow(svg, ex, ey, ex + 14 + Ek * 4, ey);
           }
         } else {
-          svgEl(svg, "text", { x: 510, y: 135, "text-anchor": "middle", class: "g-label", fill: "var(--bad)" }).textContent = "พลังงานไม่พอ (ไม่หลุด)";
+          svgEl(svg, "text", { x: 510, y: 135, "text-anchor": "middle", class: "g-label", style: "fill: var(--bad); font-weight: 600;" }).textContent = "พลังงานไม่พอ (ไม่หลุด)";
         }
 
         var gx1 = 60, gx2 = 320, gyTop = 40, gyBottom = 220;

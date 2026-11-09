@@ -94,6 +94,18 @@ async function getLesson(env, slug) {
   ).bind(slug).first();
   if (!lesson) return null;
 
+  const allLessons = (await env.DB.prepare(
+    `SELECT l.slug, l.title, ch.title AS chapter_title
+     FROM lessons l
+     JOIN chapters ch ON ch.id = l.chapter_id
+     JOIN categories cat ON cat.id = ch.category_id
+     WHERE l.status = 'published'
+     ORDER BY cat.sort_order, ch.sort_order, l.sort_order, l.id`
+  ).all()).results;
+  const idx = allLessons.findIndex((x) => x.slug === lesson.slug);
+  const prevLesson = idx > 0 ? { slug: allLessons[idx - 1].slug, title: allLessons[idx - 1].title, chapterTitle: allLessons[idx - 1].chapter_title } : null;
+  const nextLesson = idx >= 0 && idx < allLessons.length - 1 ? { slug: allLessons[idx + 1].slug, title: allLessons[idx + 1].title, chapterTitle: allLessons[idx + 1].chapter_title } : null;
+
   const videos = (await env.DB.prepare(
     `SELECT provider, url, title, channel_name, channel_url
      FROM videos WHERE lesson_id = ? AND is_active = 1 ORDER BY sort_order, id`
@@ -136,6 +148,8 @@ async function getLesson(env, slug) {
     level: lesson.level,
     category: lesson.category_title,
     chapter: { slug: lesson.chapter_slug, title: lesson.chapter_title },
+    prevLesson,
+    nextLesson,
     videos: videos.map((v) => ({
       provider: v.provider,
       url: v.url,
