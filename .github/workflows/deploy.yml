@@ -23,13 +23,6 @@ jobs:
       - name: Build (Astro -> dist/)
         run: npm run build
 
-      - name: Seed lessons to D1 (remote, idempotent)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: d1 execute learnphysics-db --remote --file=migrations/0005_seed_all_lessons.sql
-
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:

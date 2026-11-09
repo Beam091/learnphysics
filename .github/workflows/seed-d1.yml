@@ -1,0 +1,31 @@
+name: Seed Lessons to D1
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        type: string
+        required: true
+        description: 'พิมพ์ SEED เพื่อยืนยันการอัปเดตข้อมูลบทเรียนลงฐานข้อมูล D1'
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'SEED'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run seed safety migration
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 execute learnphysics-db --remote --file=migrations/0006_seed_safety.sql
+
+      - name: Seed lessons to D1
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 execute learnphysics-db --remote --file=migrations/0005_seed_all_lessons.sql
