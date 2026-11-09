@@ -23,7 +23,11 @@
       "channel_url": "https://www.youtube.com/@notesapichat"
     }
   ],
-  "animation": null,
+  "animation": {
+    "engine": "snell-law",
+    "title": "ปรับมุมตกกระทบและดัชนีหักเห แล้วดูมุมหักเห",
+    "config": { "angle": { "min": 0, "max": 80, "default": 40 } }
+  },
   "game": null,
   "quiz": {
     "title": "แบบทดสอบ: การหักเหของแสงและกฎของสเนลล์",

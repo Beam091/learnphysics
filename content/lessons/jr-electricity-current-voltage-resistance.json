@@ -23,8 +23,16 @@
       "channel_url": "https://www.youtube.com/channel/UCptM8_BRHOXQfCDoqnBSdCQ"
     }
   ],
-  "animation": null,
-  "game": null,
+  "animation": {
+    "engine": "ohm-law",
+    "title": "ปรับ V และ R แล้วดูกระแสและกำลังไฟฟ้า",
+    "config": { "voltage": { "min": 1, "max": 24, "default": 12 }, "resistance": { "min": 1, "max": 20, "default": 6 } }
+  },
+  "game": {
+    "template": "match-circuit",
+    "title": "ปรับวงจรให้ได้กระแสตามเป้าหมาย",
+    "config": { "tolerance": 0.1 }
+  },
   "quiz": {
     "title": "แบบทดสอบ: กระแส ความต่างศักย์ ความต้านทาน",
     "pass_score": 60,

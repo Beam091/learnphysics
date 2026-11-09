@@ -23,8 +23,16 @@
       "channel_url": "https://www.youtube.com/channel/UCx5Rw-I8iWy6EcVz2zpwRrw"
     }
   ],
-  "animation": null,
-  "game": null,
+  "animation": {
+    "engine": "harmonic-wave",
+    "title": "ปรับ f, λ และ A แล้วดูอัตราเร็วคลื่น",
+    "config": { "frequency": { "min": 1, "max": 10, "default": 2 }, "wavelength": { "min": 1, "max": 10, "default": 4 } }
+  },
+  "game": {
+    "template": "wave-tuner",
+    "title": "จูนคลื่นให้ได้อัตราเร็วตามเป้าหมาย",
+    "config": { "tolerance": 1 }
+  },
   "quiz": {
     "title": "แบบทดสอบ: คลื่นผิวน้ำและคลื่นในเส้นเชือก",
     "pass_score": 60,

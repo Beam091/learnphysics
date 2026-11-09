@@ -23,7 +23,11 @@
       "channel_url": "https://www.youtube.com/channel/UCnmbawrCxnZvSN88oAWYdXw"
     }
   ],
-  "animation": null,
+  "animation": {
+    "engine": "harmonic-wave",
+    "title": "ปรับ f, λ และ A แล้วดูอัตราเร็วคลื่น",
+    "config": { "frequency": { "min": 1, "max": 10, "default": 2 }, "wavelength": { "min": 1, "max": 10, "default": 4 } }
+  },
   "game": null,
   "quiz": {
     "title": "แบบทดสอบ: การเกิดและการเคลื่อนที่ของเสียง",

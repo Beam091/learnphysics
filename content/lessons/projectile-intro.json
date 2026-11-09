@@ -5,7 +5,24 @@
   "sort_order": 1,
   "title": "โพรเจกไทล์: ภาพรวมการเคลื่อนที่เป็นเส้นโค้ง",
   "summary": "วัตถุที่ถูกยิงเฉียงขึ้นเคลื่อนที่เป็นเส้นโค้งพาราโบลา เพราะในแนวราบความเร็วคงที่ ส่วนในแนวตั้งมีความเร่งจากแรงโน้มถ่วง",
-  "videos": [],
+  "videos": [
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=UTMXSCv2Slo",
+      "youtube_id": "UTMXSCv2Slo",
+      "title": "ฟิสิกส์ ม.4 บทที่ 7 การเคลื่อนที่แนวโค้ง ep.1 (การเคลื่อนที่แบบโพรเจกไทล์)",
+      "channel_name": "ฟิสิกส์ by ครูโน้ต",
+      "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
+    },
+    {
+      "provider": "youtube",
+      "url": "https://www.youtube.com/watch?v=ZrFyxC3x3-w",
+      "youtube_id": "ZrFyxC3x3-w",
+      "title": "ฟิสิกส์ ม.4 บทที่ 7 การเคลื่อนที่แนวโค้ง ep.2 (การเคลื่อนที่แบบโพรเจกไทล์)",
+      "channel_name": "ฟิสิกส์ by ครูโน้ต",
+      "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
+    }
+  ],
   "animation": {
     "engine": "projectile",
     "title": "ลองยิงวัตถุเฉียงขึ้น",

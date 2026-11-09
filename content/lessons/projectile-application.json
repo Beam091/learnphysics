@@ -24,7 +24,11 @@
     }
   ],
   "animation": null,
-  "game": null,
+  "game": {
+    "template": "aim-and-shoot",
+    "title": "ยิงให้โดนเป้า: ปรับมุมและความเร็ว",
+    "config": { "targetDistance": [40, 120], "tolerance": 4 }
+  },
   "quiz": {
     "title": "แบบทดสอบ: การประยุกต์โพรเจกไทล์",
     "pass_score": 60,
