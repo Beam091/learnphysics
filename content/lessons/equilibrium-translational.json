@@ -4,7 +4,7 @@
   "chapter": "equilibrium-rotation",
   "sort_order": 1,
   "title": "สมดุลต่อการเลื่อนที่",
-  "summary": "วัตถุในสมดุลต่อการเลื่อนที่หมายถึงแรงลัพธ์เป็นศูนย์ วัตถุอาจอยู่นิ่งหรือเคลื่อนที่ด้วยความเร็วคงที่ก็ได้",
+  "summary": "วัตถุจะอยู่ในสมดุลต่อการเลื่อนที่ (Translational Equilibrium) เมื่อวัตถุหยุดนิ่งหรือเคลื่อนที่ด้วยความเร็วคงที่ เงื่อนไขของสมดุลคือผลรวมของแรงภายนอกทั้งหมดที่กระทำต่อวัตถุต้องเท่ากับศูนย์ หรือ ΣF = 0 ซึ่งสามารถแยกเป็นสองแกนได้คือ ΣFx = 0 และ ΣFy = 0 สำหรับแรงสามแรงที่พบกันที่จุดหนึ่ง เราสามารถใช้ทฤษฎีบทลามี (Lami's Theorem) หรือสามเหลี่ยมแทนแรงในการคำนวณได้อย่างสะดวก",
   "videos": [
     {
       "provider": "youtube",
@@ -23,8 +23,49 @@
       "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
     }
   ],
-  "animation": null,
-  "game": null,
+  "animation": {
+    "engine": "newton-force",
+    "title": "จำลองสมดุลของแรงบนมวลเมื่อผลรวมของแรงลัพธ์เท่ากับศูนย์",
+    "config": {
+      "force": {
+        "min": 0,
+        "max": 80,
+        "default": 30
+      },
+      "mass": {
+        "min": 2,
+        "max": 18,
+        "default": 6
+      },
+      "friction": {
+        "min": 0.1,
+        "max": 0.7,
+        "step": 0.05,
+        "default": 0.3
+      }
+    }
+  },
+  "game": {
+    "template": "balance-force",
+    "title": "ปรับแรงกระทำต่อวัตถุให้เกิดสมดุลความเร่งตามเกณฑ์ที่ระบุ",
+    "config": {
+      "targetAcc": [
+        1.2,
+        4
+      ],
+      "tolerance": 0.18,
+      "force": {
+        "min": 18,
+        "max": 82,
+        "default": 38
+      },
+      "mass": {
+        "min": 2,
+        "max": 9,
+        "default": 5
+      }
+    }
+  },
   "quiz": {
     "title": "แบบทดสอบ: สมดุลต่อการเลื่อนที่",
     "pass_score": 60,

@@ -4,7 +4,7 @@
   "chapter": "momentum-collisions",
   "sort_order": 4,
   "title": "การชนแบบไม่ยืดหยุ่น",
-  "summary": "การชนแบบไม่ยืดหยุ่นสมบูรณ์วัตถุติดกันหลังชน พลังงานจลน์บางส่วนสูญหายแต่โมเมนตัมรวมยังคงที่",
+  "summary": "การชนแบบไม่ยืดหยุ่น (Inelastic Collision) โมเมนตัมรวมยังคงอนุรักษ์ไว้เสมอ แต่พลังงานจลน์รวมของระบบลดลงเนื่องจากเปลี่ยนรูปไปเป็นความร้อน เสียง หรือการเสียรูปของวัตถุ หากหลังการชนวัตถุทั้งสองเคลื่อนที่ติดกันไปด้วยความเร็วเดียวกัน (v1 = v2 = v) จะเรียกว่าการชนแบบไม่ยืดหยุ่นสมบูรณ์ โดยคำนวณความเร็วหลังชนได้จากสมการ v = (m1 u1 + m2 u2) / (m1 + m2)",
   "videos": [
     {
       "provider": "youtube",
@@ -15,8 +15,53 @@
       "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
     }
   ],
-  "animation": null,
-  "game": null,
+  "animation": {
+    "engine": "momentum-collision",
+    "title": "สังเกตการชนที่สูญเสียพลังงานจลน์และการเคลื่อนที่ติดกันไป",
+    "config": {
+      "m1": {
+        "min": 1,
+        "max": 8,
+        "default": 4
+      },
+      "u1": {
+        "min": 1,
+        "max": 8,
+        "default": 6
+      },
+      "m2": {
+        "min": 1,
+        "max": 8,
+        "default": 2
+      },
+      "u2": {
+        "min": -5,
+        "max": 3,
+        "default": 0
+      }
+    }
+  },
+  "game": {
+    "template": "balance-force",
+    "title": "ควบคุมความเร่งร่วมหลังการชนให้เข้าสู่ย่านค่ากำหนด",
+    "config": {
+      "targetAcc": [
+        1.2,
+        3.8
+      ],
+      "tolerance": 0.15,
+      "force": {
+        "min": 18,
+        "max": 86,
+        "default": 40
+      },
+      "mass": {
+        "min": 3,
+        "max": 10,
+        "default": 6
+      }
+    }
+  },
   "quiz": {
     "title": "แบบทดสอบ: การชนแบบไม่ยืดหยุ่น",
     "pass_score": 60,

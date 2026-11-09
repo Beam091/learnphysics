@@ -4,7 +4,7 @@
   "chapter": "oscillation-gravity",
   "sort_order": 3,
   "title": "พลังงานของการสั่น",
-  "summary": "พลังงานกลรวมของการสั่นคงที่เท่ากับ ½kA² เปลี่ยนไปมาระหว่างพลังงานจลน์สูงสุดที่จุดสมดุลและพลังงานศักย์สูงสุดที่จุดปลาย",
+  "summary": "ในการเคลื่อนที่แบบ SHM ที่ไม่มีแรงเสียดทาน พลังงานรวมของระบบจะอนุรักษ์ไว้เสมอ มีค่าเท่ากับ E_total = (1/2)kA² = (1/2)m(v_max)² ที่ตำแหน่งสมดุล พลังงานทั้งหมดจะอยู่ในรูปพลังงานจลน์ (Ek = max, Ep = 0) ส่วนที่ตำแหน่งปลายสุด พลังงานทั้งหมดจะเปลี่ยนเป็นพลังงานศักย์ยืดหยุ่น (Ep = max, Ek = 0) ที่ตำแหน่งใดๆ ผลรวมของพลังงานทั้งสองจะคงที่เสมอ",
   "videos": [
     {
       "provider": "youtube",
@@ -15,8 +15,51 @@
       "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
     }
   ],
-  "animation": null,
-  "game": null,
+  "animation": {
+    "engine": "circular-shm",
+    "title": "จำลองการแลกเปลี่ยนระหว่างพลังงานศักย์ยืดหยุ่นและพลังงานจลน์ใน SHM",
+    "config": {
+      "mass": {
+        "min": 0.5,
+        "max": 9,
+        "step": 0.5,
+        "default": 2
+      },
+      "radius": {
+        "min": 0.5,
+        "max": 4,
+        "step": 0.5,
+        "default": 2.5
+      },
+      "springK": {
+        "min": 12,
+        "max": 72,
+        "step": 4,
+        "default": 36
+      }
+    }
+  },
+  "game": {
+    "template": "balance-force",
+    "title": "ส่งถ่ายพลังงานศักย์ของการสั่นผ่านความเร่งเป้าหมายให้แม่นยำ",
+    "config": {
+      "targetAcc": [
+        1.5,
+        4.5
+      ],
+      "tolerance": 0.15,
+      "force": {
+        "min": 20,
+        "max": 90,
+        "default": 46
+      },
+      "mass": {
+        "min": 2,
+        "max": 9,
+        "default": 4
+      }
+    }
+  },
   "quiz": {
     "title": "แบบทดสอบ: พลังงานของการสั่น",
     "pass_score": 60,

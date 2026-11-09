@@ -4,7 +4,7 @@
   "chapter": "oscillation-gravity",
   "sort_order": 2,
   "title": "สปริงและลูกตุ้ม",
-  "summary": "คาบของสปริง T = 2π√(m/k) และคาบของลูกตุ้มอย่างง่าย T = 2π√(L/g) โดยคาบลูกตุ้มไม่ขึ้นกับมวล",
+  "summary": "สำหรับระบบมวล m ติดปลายสปริงที่มีค่าคงตัว k คาบการสั่นคำนวณจาก T = 2π√(m/k) ซึ่งขึ้นอยู่กับมวลและค่าคงตัวสปริงเท่านั้น ไม่ขึ้นกับแอมพลิจูด สำหรับลูกตุ้มนาฬิกาอย่างง่ายความยาว L แกว่งด้วยมุมแคบๆ คาบการแกว่งคำนวณจาก T = 2π√(L/g) ซึ่งขึ้นอยู่กับความยาวเชือกและความเร่งโน้มถ่วง โดยไม่ขึ้นกับมวลของลูกตุ้ม",
   "videos": [
     {
       "provider": "youtube",
@@ -23,8 +23,51 @@
       "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
     }
   ],
-  "animation": null,
-  "game": null,
+  "animation": {
+    "engine": "circular-shm",
+    "title": "ทดสอบการสั่นของมวลติดสปริงและการแกว่งของลูกตุ้มอย่างง่าย",
+    "config": {
+      "mass": {
+        "min": 0.5,
+        "max": 8,
+        "step": 0.5,
+        "default": 1.5
+      },
+      "radius": {
+        "min": 0.5,
+        "max": 3,
+        "step": 0.5,
+        "default": 1.5
+      },
+      "springK": {
+        "min": 8,
+        "max": 64,
+        "step": 4,
+        "default": 24
+      }
+    }
+  },
+  "game": {
+    "template": "balance-force",
+    "title": "ปรับมวลและแรงยึดสปริงให้สร้างความเร่งตามค่าเป้าหมาย",
+    "config": {
+      "targetAcc": [
+        1.4,
+        4.4
+      ],
+      "tolerance": 0.15,
+      "force": {
+        "min": 18,
+        "max": 88,
+        "default": 42
+      },
+      "mass": {
+        "min": 1,
+        "max": 8,
+        "default": 4
+      }
+    }
+  },
   "quiz": {
     "title": "แบบทดสอบ: สปริงและลูกตุ้ม",
     "pass_score": 60,

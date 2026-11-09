@@ -4,7 +4,7 @@
   "chapter": "oscillation-gravity",
   "sort_order": 5,
   "title": "สนามโน้มถ่วงและดาวเทียม",
-  "summary": "สนามโน้มถ่วง g = GM/r² ความเร็วของดาวเทียมที่โคจรไม่ขึ้นกับมวลดาวเทียม โดยได้จากสมดุลของแรงโน้มถ่วงและแรงสู่ศูนย์กลาง",
+  "summary": "สนามโน้มถ่วง (g) ณ ระยะห่าง r จากจุดศูนย์กลางดาวเคราะห์มีค่าเท่ากับ g = GM/r² สำหรับดาวเทียมที่โคจรรอบดาวเคราะห์ แรงดึงดูดโน้มถ่วงทำหน้าที่เป็นแรงสู่ศูนย์กลาง GMm/r² = mv²/r ทำให้อัตราเร็วในการโคจรคือ v = √(GM/r) ดาวเทียมค้างฟ้า (Geostationary Satellite) มีคาบการโคจรเท่ากับ 24 ชั่วโมง เท่ากับการหมุนรอบตัวเองของโลก จึงปรากฏหยุดนิ่งเทียบกับพื้นโลก",
   "videos": [
     {
       "provider": "youtube",
@@ -23,8 +23,51 @@
       "channel_url": "https://www.youtube.com/channel/UCnRGVpAjNHe8tJT3BtqFAuw"
     }
   ],
-  "animation": null,
-  "game": null,
+  "animation": {
+    "engine": "circular-shm",
+    "title": "จำลองวงโคจรของดาวเทียมรอบดาวเคราะห์ด้วยความเร็วโคจรคงตัว",
+    "config": {
+      "mass": {
+        "min": 0.5,
+        "max": 10,
+        "step": 0.5,
+        "default": 3
+      },
+      "radius": {
+        "min": 1,
+        "max": 4,
+        "step": 0.5,
+        "default": 2.8
+      },
+      "springK": {
+        "min": 10,
+        "max": 70,
+        "step": 4,
+        "default": 32
+      }
+    }
+  },
+  "game": {
+    "template": "balance-force",
+    "title": "ปรับแรงโน้มถ่วงและมวลดาวเทียมให้ได้ความเร่งเข้าสู่ศูนย์กลางตามเป้า",
+    "config": {
+      "targetAcc": [
+        1.3,
+        4.5
+      ],
+      "tolerance": 0.15,
+      "force": {
+        "min": 20,
+        "max": 94,
+        "default": 48
+      },
+      "mass": {
+        "min": 2,
+        "max": 10,
+        "default": 5
+      }
+    }
+  },
   "quiz": {
     "title": "แบบทดสอบ: สนามโน้มถ่วงและดาวเทียม",
     "pass_score": 60,

@@ -4,7 +4,7 @@
   "chapter": "kinetic-theory",
   "sort_order": 3,
   "title": "สมการสถานะของแก๊ส",
-  "summary": "สมการสถานะ PV = nRT เชื่อมความดัน ปริมาตร จำนวนโมล และอุณหภูมิสัมบูรณ์ของแก๊สอุดมคติเข้าด้วยกัน ใช้คำนวณสมบัติของแก๊สเมื่อเปลี่ยนสภาวะ",
+  "summary": "สมการสถานะของแก๊สอุดมคติรวมตัวแปรสภาวะทั้งหมดไว้ในรูป PV = nRT หรือ PV = N k_B T โดย P คือความดัน, V คือปริมาตร, n คือจำนวนโมล, R คือค่าคงตัวสากลของแก๊ส (8.314 J/mol·K) และ T คืออุณหภูมิสัมบูรณ์ในหน่วยเคลวิน สมการนี้ใช้ได้ดีกับแก๊สจริงที่ความดันต่ำและอุณหภูมิสูง ซึ่งโมเลกุลอยู่ห่างกันมากจนแรงดึงดูดระหว่างโมเลกุลมีผลน้อยมาก",
   "videos": [
     {
       "provider": "youtube",
@@ -23,8 +23,52 @@
       "channel_url": "https://www.youtube.com/@notesapichat"
     }
   ],
-  "animation": null,
-  "game": null,
+  "animation": {
+    "engine": "ideal-gas",
+    "title": "จำลองสมการสถานะ PV = nRT กับการกระจายตัวของโมเลกุล",
+    "config": {
+      "temperature": {
+        "min": 200,
+        "max": 600,
+        "step": 20,
+        "default": 350
+      },
+      "volume": {
+        "min": 2,
+        "max": 10,
+        "step": 0.5,
+        "default": 4.5
+      },
+      "moles": {
+        "min": 0.5,
+        "max": 3,
+        "step": 0.5,
+        "default": 1.5
+      }
+    }
+  },
+  "game": {
+    "template": "thermal-piston",
+    "title": "คำนวณค่า PV = nRT เพื่อปรับสมดุลความดันในลูกสูบ",
+    "config": {
+      "tolerance": 10,
+      "targetPressure": [
+        170,
+        320
+      ],
+      "temperature": {
+        "min": 200,
+        "max": 600,
+        "default": 360
+      },
+      "volume": {
+        "min": 2,
+        "max": 10,
+        "step": 0.5,
+        "default": 4.5
+      }
+    }
+  },
   "quiz": {
     "title": "แบบทดสอบ: สมการสถานะของแก๊ส",
     "pass_score": 60,
