@@ -102,7 +102,7 @@
       var guestMsg = make(
         "p",
         "progress-guest-text",
-        "🔒 กรุณาเข้าสู่ระบบด้วย Google เพื่อเข้าเรียนทั้ง " + totalLessons + " บทเรียน และบันทึกความคืบหน้าของคุณอัตโนมัติ"
+        "🔒 ระบบอยู่ในช่วงเปิดทดสอบ (Public Beta) — กรุณาเข้าสู่ระบบด้วยบัญชี Google เพื่อเข้าใช้งานบทเรียนทั้ง 155 บท และบันทึกความคืบหน้าการเรียนอัตโนมัติ"
       );
       var guestLoginBtn = make("a", "button cta-main progress-guest-btn", "เข้าสู่ระบบด้วย Google");
       guestLoginBtn.href = "/api/auth/google?return_to=" + encodeURIComponent("/courses");
@@ -112,9 +112,9 @@
       banner.appendChild(guestWrap);
     } else {
       var bannerHead = make("div", "progress-header");
-      var bannerTitle = make("strong", null, "ความคืบหน้าของคุณ: ");
+      var bannerTitle = make("strong", null, "ความคืบหน้าการเรียนของคุณ: ");
       var bannerInfo = document.createTextNode(
-        "เรียนผ่านแล้ว " + passedCount + " จาก " + totalLessons + " บทเรียน (" + percentPassed + "%)"
+        "สำเร็จแล้ว " + passedCount + " จาก " + totalLessons + " บทเรียน (" + percentPassed + "%)"
       );
       bannerHead.appendChild(bannerTitle);
       bannerHead.appendChild(bannerInfo);
@@ -156,8 +156,8 @@
       { id: "all", label: "ทั้งหมด (" + totalLessons + ")" },
       { id: "junior", label: "ม.ต้น (" + juniorCount + ")" },
       { id: "senior", label: "ม.ปลาย (" + seniorCount + ")" },
-      { id: "passed", label: "ที่เรียนแล้ว (" + passedCount + ")" },
-      { id: "bookmarks", label: "⭐ ที่บันทึกไว้ (" + bookmarkSet.length + ")" },
+      { id: "passed", label: "สำเร็จแล้ว (" + passedCount + ")" },
+      { id: "bookmarks", label: "⭐ บันทึกไว้ (" + bookmarkSet.length + ")" },
     ];
 
     var tabButtons = {};

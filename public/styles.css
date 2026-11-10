@@ -121,6 +121,20 @@ html[data-theme="light"] .site-header { background: rgba(238, 243, 247, 0.85); }
   white-space: nowrap;
 }
 
+.beta-badge {
+  font-family: "Prompt", sans-serif;
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--mark);
+  color: #14213d;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  vertical-align: middle;
+  display: inline-block;
+}
+
 /* ปุ่มสลับโหมดมืด/สว่าง */
 .theme-toggle {
   display: inline-flex;
@@ -167,6 +181,7 @@ html[data-theme="light"] .site-header { background: rgba(238, 243, 247, 0.85); }
   .site-header .wrap { padding: 0 8px; gap: 6px; }
   .brand { font-size: 0.95rem; gap: 4px; }
   .brand svg { width: 20px; height: 20px; }
+  .beta-badge { font-size: 0.62rem; padding: 1px 4px; }
   .site-header nav { gap: 5px; }
   .site-header nav a:not(.auth-login):not(.auth-link) { font-size: 0.82rem; padding: 4px 2px; }
   .theme-toggle { width: 34px; height: 34px; min-height: 34px; font-size: 1rem; }

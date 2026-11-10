@@ -69,9 +69,9 @@
   function paintStatus() {
     var p = getProgress();
     var map = {
-      video: p.video ? "ดูแล้ว" : "",
-      anim: p.anim ? "ลองแล้ว" : "",
-      game: p.game ? "ผ่านแล้ว" : "",
+      video: p.video ? "ศึกษาแล้ว" : "",
+      anim: p.anim ? "ทดลองแล้ว" : "",
+      game: p.game ? "ผ่านกิจกรรมแล้ว" : "",
       quiz: p.quiz !== null ? "คะแนนสูงสุด " + p.quiz + "%" : "",
     };
     for (var k in statusEls) {
@@ -86,7 +86,7 @@
 
       if (isPassed) {
         passedBanner.style.display = "flex";
-        passedBanner.textContent = "🎉 คุณผ่านบทเรียนนี้แล้ว!";
+        passedBanner.textContent = "✓ คุณผ่านเกณฑ์การประเมินของบทเรียนนี้แล้ว";
       } else {
         passedBanner.style.display = "none";
         passedBanner.textContent = "";
@@ -113,11 +113,11 @@
   function videoStep(lesson) {
     var nodes = [];
     if (!lesson.videos.length) {
-      nodes.push(notReady("ยังไม่มีคลิปสำหรับบทเรียนนี้"));
+      nodes.push(notReady("ยังไม่มีสื่อการสอนสำหรับบทเรียนนี้"));
     } else {
       var list = h("ul", { class: "videos" });
       lesson.videos.forEach(function (v) {
-        var linkText = v.provider === "youtube" ? "เปิดบน YouTube" : "เปิดลิงก์";
+        var linkText = v.provider === "youtube" ? "รับชมสื่อการสอน (YouTube)" : "รับชมสื่อการสอน";
         var a = h("a", {
           class: "button",
           href: v.url,
@@ -131,7 +131,7 @@
         list.appendChild(
           h("li", null, [
             h("strong", { text: v.title }),
-            h("span", { class: "muted" }, [document.createTextNode("จากช่อง "), channel]),
+            h("span", { class: "muted" }, [document.createTextNode("ที่มา: ช่อง "), channel]),
             a,
           ])
         );
@@ -145,15 +145,15 @@
         setProgress("video", box.checked);
         paintStatus();
       });
-      nodes.push(h("div", { class: "field check" }, [box, h("label", { for: boxId, text: "ดูคลิปนี้แล้ว" })]));
+      nodes.push(h("div", { class: "field check" }, [box, h("label", { for: boxId, text: "ศึกษาเนื้อหาวิดีโอครบถ้วนแล้ว" })]));
       nodes.push(
         h("p", {
           class: "note",
-          text: "คลิปจะเปิดในแท็บใหม่ เมื่อดูจบแล้วกลับมาที่หน้านี้เพื่อทำขั้นต่อไป",
+          text: "สื่อการสอนจะเปิดในแท็บใหม่ เมื่อศึกษาเสร็จแล้วสามารถทำกิจกรรมในขั้นตอนถัดไปได้ทันที",
         })
       );
     }
-    return step("video", 1, "ดูคลิปสอน", nodes);
+    return step("video", 1, "ศึกษาสื่อการสอน", nodes);
   }
 
   // -------------------------------------------------------------- ซิมและเกม
@@ -169,9 +169,9 @@
         },
       });
     } else {
-      box.appendChild(notReady("ตัวจำลองของบทนี้กำลังจัดทำ"));
+      box.appendChild(notReady("ห้องปฏิบัติการจำลองของบทนี้กำลังจัดทำ"));
     }
-    return step("anim", 2, a && a.title ? "ลองจำลอง: " + a.title : "ลองจำลอง", [box]);
+    return step("anim", 2, a && a.title ? "ห้องปฏิบัติการจำลอง: " + a.title : "ห้องปฏิบัติการจำลอง", [box]);
   }
 
   function gameStep(lesson) {
@@ -186,22 +186,22 @@
         },
       });
     } else {
-      box.appendChild(notReady("เกมของบทนี้กำลังจัดทำ"));
+      box.appendChild(notReady("กิจกรรมฝึกทักษะของบทนี้กำลังจัดทำ"));
     }
-    return step("game", 3, g && g.title ? "เล่นเกม: " + g.title : "เล่นเกม", [box]);
+    return step("game", 3, g && g.title ? "กิจกรรมฝึกทักษะ: " + g.title : "กิจกรรมฝึกทักษะ", [box]);
   }
 
   // ------------------------------------------------------------- แบบทดสอบ
   function quizStep(lesson) {
     var quiz = lesson.quiz;
     if (!quiz || !quiz.questions.length) {
-      return step("quiz", 4, "ทำแบบทดสอบ", [notReady("แบบทดสอบของบทนี้กำลังจัดทำ")]);
+      return step("quiz", 4, "แบบประเมินผลการเรียนรู้", [notReady("แบบประเมินผลของบทนี้กำลังจัดทำ")]);
     }
 
     var form = h("form", { class: "quiz", novalidate: "novalidate" });
     var resultBox = h("div", { class: "quiz-result", "aria-live": "polite" });
-    var submit = h("button", { type: "submit", text: "ส่งคำตอบ" });
-    var retry = h("button", { type: "button", class: "secondary", text: "ทำอีกครั้ง" });
+    var submit = h("button", { type: "submit", text: "ส่งตรวจคำตอบ" });
+    var retry = h("button", { type: "button", class: "secondary", text: "ทำแบบประเมินอีกครั้ง" });
     retry.hidden = true;
 
     var marks = {}; // question id -> element สำหรับแสดงผลตรวจ
@@ -381,7 +381,7 @@
       retry.hidden = true;
     });
 
-    return step("quiz", 4, "ทำแบบทดสอบ", [form]);
+    return step("quiz", 4, "แบบประเมินผลการเรียนรู้", [form]);
   }
 
   // ------------------------------------------------- แถบปุ่มนำทางบทก่อนหน้า/ถัดไป
@@ -532,11 +532,11 @@
   }
 
   function createNotesBox() {
-    var area = h("textarea", { id: "lesson-note", maxlength: "5000", "aria-label": "โน้ตย่อส่วนตัว", placeholder: "จดสิ่งที่อยากจำจากบทนี้..." });
-    var saveBtn = h("button", { type: "button", text: "บันทึกโน้ต" });
+    var area = h("textarea", { id: "lesson-note", maxlength: "5000", "aria-label": "บันทึกย่อส่วนบุคคล", placeholder: "จดสรุปแนวคิดสำคัญ สูตร หรือข้อสังเกตจากบทเรียนนี้..." });
+    var saveBtn = h("button", { type: "button", text: "บันทึกข้อความ" });
     var hint = h("span", { class: "notes-hint", role: "status", "aria-live": "polite" });
     var notes = h("div", { class: "notes-box", style: "margin-top: 36px;" }, [
-      h("h2", { text: "📝 โน้ตย่อส่วนตัวของฉัน" }),
+      h("h2", { text: "📝 บันทึกย่อส่วนบุคคล" }),
       area,
       h("div", { class: "notes-actions" }, [saveBtn, hint]),
     ]);
@@ -546,7 +546,7 @@
       window.LPAuth.api("/api/notes/" + encodeURIComponent(slug)).then(function (data) {
         if (data.ok && data.body) {
           area.value = data.body;
-          hint.textContent = "บันทึกโน้ตผูกกับบัญชีของคุณแล้ว";
+          hint.textContent = "บันทึกข้อความผูกกับบัญชีของคุณแล้ว";
         }
       });
     }
@@ -554,7 +554,7 @@
     saveBtn.addEventListener("click", function () {
       var text = area.value.trim();
       if (!window.LPAuth || !window.LPAuth.user) {
-        hint.textContent = "🔒 กรุณาเข้าสู่ระบบด้วย Google ก่อนบันทึกโน้ต";
+        hint.textContent = "🔒 กรุณาเข้าสู่ระบบด้วย Google ก่อนบันทึกข้อความ";
         return;
       }
       saveBtn.disabled = true;
@@ -562,7 +562,7 @@
       window.LPAuth.api("/api/notes/" + encodeURIComponent(slug), "POST", { body: text })
         .then(function (data) {
           if (!data.ok) throw new Error("fail");
-          hint.textContent = "✓ บันทึกโน้ตผูกกับบัญชีของคุณแล้ว";
+          hint.textContent = "✓ บันทึกข้อความผูกกับบัญชีของคุณแล้ว";
         })
         .catch(function () {
           hint.textContent = "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง";
@@ -608,7 +608,7 @@
     // การ์ดสรุปสาระสำคัญ (Key Takeaways Card)
     if (lesson.summary) {
       var summaryCard = h("div", { class: "summary-card" }, [
-        h("h2", { class: "summary-card-title", text: "💡 สาระสำคัญของบทนี้" }),
+        h("h2", { class: "summary-card-title", text: "💡 สาระสำคัญประจำบทเรียน" }),
         h("p", { class: "summary-card-body", text: lesson.summary }),
       ]);
       root.appendChild(summaryCard);
@@ -637,7 +637,7 @@
     root.appendChild(
       h("p", {
         class: "note save-note",
-        text: "✓ ความคืบหน้า คะแนนแบบทดสอบ และโน้ตย่อของคุณถูกบันทึกผูกกับบัญชี Google อัตโนมัติ",
+        text: "✓ ข้อมูลความคืบหน้า คะแนนการประเมิน และบันทึกย่อของคุณถูกซิงค์กับบัญชีผู้ใช้งานโดยอัตโนมัติ (รุ่นทดสอบระบบ Public Beta)",
       })
     );
 
@@ -660,10 +660,10 @@
     var card = h("div", { class: "login-gate-card" });
 
     var icon = h("div", { class: "login-gate-icon", "aria-hidden": "true" }, [document.createTextNode("🔒")]);
-    var title = h("h1", { class: "login-gate-title", text: "เข้าสู่ระบบเพื่อเริ่มเรียนบทนี้" });
+    var title = h("h1", { class: "login-gate-title", text: "กรุณาเข้าสู่ระบบเพื่อเข้าใช้งานบทเรียน" });
     var desc = h("p", {
       class: "login-gate-desc",
-      text: "เพื่อบันทึกความคืบหน้า คะแนนแบบทดสอบ บุ๊กมาร์ก และโน้ตย่อของคุณอย่างปลอดภัยในทุกอุปกรณ์ กรุณาเข้าสู่ระบบด้วยบัญชี Google ก่อนเข้าสู่บทเรียน",
+      text: "แพลตฟอร์ม LearnPhysics (Public Beta) กำหนดให้เข้าสู่ระบบด้วยบัญชี Google ก่อนเข้าเรียน เพื่อบันทึกความคืบหน้า คะแนนการประเมินผล รายการที่บันทึกไว้ และบันทึกย่อส่วนบุคคลของคุณอย่างปลอดภัยในทุกอุปกรณ์",
     });
 
     var googleBtn = h("a", {
@@ -677,7 +677,7 @@
     var backBtn = h("a", {
       class: "button secondary",
       href: "/courses",
-      text: "← กลับไปดูโครงสร้างหลักสูตร",
+      text: "← กลับสู่หน้าโครงสร้างหลักสูตร",
     });
 
     var actions = h("div", { class: "login-gate-actions" }, [googleBtn, backBtn]);

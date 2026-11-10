@@ -56,20 +56,19 @@ const categories = [
 <Base>
   <section class="hero wrap">
     <div class="hero-text">
-      <h1>ฟิสิกส์ที่เห็นภาพ ลองปรับค่าแล้วดูผลได้ทันที</h1>
+      <h1>แพลตฟอร์มการเรียนรู้ฟิสิกส์เชิงโต้ตอบ เห็นภาพและทดลองปรับค่าได้ทันที</h1>
       <p class="lead">
-        เว็บเรียนฟิสิกส์ภาษาไทยตั้งแต่ ม.ต้นถึง ม.ปลาย รวมคลิปสอน แอนิเมชั่นจำลอง เกม
-        และแบบทดสอบไว้ในที่เดียว
+        ยกระดับความเข้าใจวิชาฟิสิกส์ระดับมัธยมศึกษาตอนต้นและตอนปลาย ด้วยสื่อการสอน ห้องปฏิบัติการจำลองเสมือนจริง กิจกรรมฝึกทักษะ และระบบประเมินผลพร้อมคำอธิบายเชิงลึก
       </p>
-      <p class="status">เปิดเรียนฟรีครบ 100% — 155 บทเรียน ม.ต้น และ ม.ปลาย</p>
+      <p class="status">รุ่นทดสอบระบบ (Public Beta) — เปิดให้ใช้งานครบทั้ง 155 บทเรียน ม.ต้น และ ม.ปลาย</p>
       <div class="hero-actions">
-        <a class="button cta-main" href="/courses">เริ่มเรียนทันที 155 บทเรียน →</a>
-        <a class="button secondary" href="/lesson?s=projectile-intro">ทดลองเรียนบทตัวอย่าง</a>
+        <a class="button cta-main" href="/courses">เข้าสู่รายวิชาทั้งหมด →</a>
+        <a class="button secondary" href="/lesson?s=projectile-intro">ดูตัวอย่างบทเรียน</a>
       </div>
     </div>
 
     <div class="sim">
-      <h2>ลองยิงวัตถุเฉียงขึ้น</h2>
+      <h2>ห้องปฏิบัติการจำลอง: การเคลื่อนที่แบบโพรเจกไทล์</h2>
       <svg
         id="plot"
         viewBox="0 0 680 360"
@@ -86,7 +85,7 @@ const categories = [
           <label for="speed">ความเร็วต้น <output id="speedOut">25</output> เมตร/วินาที</label>
           <input id="speed" type="range" min="10" max="40" step="1" value="25" />
         </div>
-        <button id="shoot" type="button">ยิง</button>
+        <button id="shoot" type="button">เริ่มจำลองการยิง</button>
       </div>
 
       <dl class="results" aria-live="polite">
@@ -94,7 +93,7 @@ const categories = [
         <div><dt>สูงสุด</dt><dd id="heightOut">-</dd></div>
         <div><dt>เวลาที่ลอย</dt><dd id="timeOut">-</dd></div>
       </dl>
-      <p class="note">ไม่คิดแรงต้านอากาศ ใช้ g = 9.8 เมตร/วินาที²</p>
+      <p class="note">จำลองสภาวะไร้แรงต้านอากาศ โดยใช้ค่าความเร่งโน้มถ่วงมาตรฐาน g = 9.8 m/s²</p>
     </div>
   </section>
 
@@ -104,33 +103,33 @@ const categories = [
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-number">155</div>
-          <div class="stat-label">บทเรียนออนไลน์</div>
-          <div class="stat-sub">ครบ 100% ตามหลักสูตร</div>
+          <div class="stat-label">บทเรียนมาตรฐาน</div>
+          <div class="stat-sub">ครอบคลุมเนื้อหา ม.ต้น – ม.ปลาย</div>
         </div>
         <div class="stat-card">
           <div class="stat-number">7</div>
           <div class="stat-label">หมวดวิชาหลัก</div>
-          <div class="stat-sub">ม.ต้น และ ม.ปลาย</div>
+          <div class="stat-sub">จัดโครงสร้างตามหลักสูตรแกนกลาง</div>
         </div>
         <div class="stat-card">
           <div class="stat-number">260</div>
-          <div class="stat-label">คลิปสอนคัดสรร</div>
-          <div class="stat-sub">พร้อมเครดิตช่องครูไทย</div>
+          <div class="stat-label">สื่อวิดีโอประกอบ</div>
+          <div class="stat-sub">อธิบายแนวคิดและทฤษฎีครบทุกบท</div>
         </div>
         <div class="stat-card">
           <div class="stat-number">15</div>
-          <div class="stat-label">ตัวจำลองฟิสิกส์</div>
-          <div class="stat-sub">ปรับค่าดูผลได้ทันที</div>
+          <div class="stat-label">ห้องปฏิบัติการจำลอง</div>
+          <div class="stat-sub">ปรับตัวแปรและดูผลลัพธ์แบบเรียลไทม์</div>
         </div>
         <div class="stat-card">
           <div class="stat-number">7</div>
-          <div class="stat-label">เกมฝึกทักษะ</div>
-          <div class="stat-sub">เรียนรู้ผ่านการเล่น</div>
+          <div class="stat-label">ชุดกิจกรรมฝึกทักษะ</div>
+          <div class="stat-sub">ประยุกต์ใช้สมการผ่านโจทย์โต้ตอบ</div>
         </div>
         <div class="stat-card">
           <div class="stat-number">775</div>
-          <div class="stat-label">ข้อสอบพร้อมเฉลย</div>
-          <div class="stat-sub">ตรวจคำตอบทันที</div>
+          <div class="stat-label">ข้อสอบวัดผลพร้อมเฉลย</div>
+          <div class="stat-sub">ประเมินผลและอธิบายวิธีคิดทันที</div>
         </div>
       </div>
     </div>
@@ -139,8 +138,8 @@ const categories = [
   <!-- หมวดวิชาทั้งหมด (Featured Categories Grid) -->
   <section class="featured-categories wrap">
     <div class="section-head">
-      <h2>หมวดวิชาทั้งหมด</h2>
-      <p class="section-lead">ครอบคลุมฟิสิกส์ระดับมัธยมศึกษาทั้งสาย ม.ต้น และ ม.ปลาย เข้าศึกษาได้ทันทีทุกหมวด</p>
+      <h2>โครงสร้างหมวดวิชาในหลักสูตร</h2>
+      <p class="section-lead">จัดแบ่งเนื้อหาอย่างเป็นระบบตั้งแต่ระดับมัธยมศึกษาตอนต้นถึงมัธยมศึกษาตอนปลาย เลือกหมวดวิชาเพื่อดูรายละเอียดบทเรียน</p>
     </div>
     <div class="cat-grid">
       {categories.map((cat) => (
@@ -151,7 +150,7 @@ const categories = [
           </div>
           <h3>{cat.title}</h3>
           <p>{cat.desc}</p>
-          <span class="cat-card-link">เข้าสู่หลักสูตรหมวดนี้ →</span>
+          <span class="cat-card-link">ดูรายละเอียดหมวดวิชานี้ →</span>
         </a>
       ))}
     </div>
@@ -160,26 +159,26 @@ const categories = [
   <!-- ขั้นตอนการเรียนรู้ -->
   <section class="steps">
     <div class="wrap">
-      <h2>ทุกบทเรียนมี 4 ขั้น</h2>
+      <h2>กระบวนการเรียนรู้มาตรฐาน 4 ขั้นตอน</h2>
       <ol>
         <li>
-          <strong>ดูคลิปสอน</strong>
-          <span>ลิงก์ไปดูบน YouTube จากช่องครูไทยหลายช่อง</span>
+          <strong>ศึกษาแนวคิดหลัก</strong>
+          <span>เรียนรู้ทฤษฎีและที่มาของสมการผ่านสื่อวิดีโอประกอบการสอนในแต่ละหัวข้อ</span>
         </li>
         <li>
-          <strong>ลองจำลอง</strong>
-          <span>ปรับค่าเองแล้วดูผลทันที เหมือนตัวอย่างด้านบน</span>
+          <strong>ทดลองผ่านระบบจำลอง</strong>
+          <span>ปรับเปลี่ยนตัวแปรทางฟิสิกส์ด้วยตนเองเพื่อสังเกตความสัมพันธ์และผลลัพธ์แบบเรียลไทม์</span>
         </li>
         <li>
-          <strong>เล่นเกม</strong>
-          <span>ฝึกใช้ความรู้ผ่านเกมสั้นๆ</span>
+          <strong>ฝึกทักษะการประยุกต์</strong>
+          <span>แก้โจทย์สถานการณ์จำลองเชิงโต้ตอบเพื่อทบทวนความเข้าใจและทักษะการคำนวณ</span>
         </li>
         <li>
-          <strong>ทำแบบทดสอบ</strong>
-          <span>ตรวจคำตอบพร้อมเฉลยอธิบาย</span>
+          <strong>ประเมินผลการเรียนรู้</strong>
+          <span>ทำแบบทดสอบท้ายบทเรียนพร้อมรับผลการตรวจและคำอธิบายเฉลยอย่างละเอียดทันที</span>
         </li>
       </ol>
-      <p class="soon">เข้าสู่ระบบด้วยบัญชี Google ฟรี เพื่อเข้าเรียนครบทั้ง 155 บทเรียน พร้อมบันทึกความคืบหน้า บุ๊กมาร์ก และโน้ตย่ออัตโนมัติ</p>
+      <p class="soon">ระบบเปิดให้ใช้งานในช่วงทดสอบ (Public Beta) — เข้าสู่ระบบด้วยบัญชี Google เพื่อเริ่มต้นใช้งานและซิงค์ข้อมูลการเรียนของคุณอัตโนมัติ</p>
     </div>
   </section>
 

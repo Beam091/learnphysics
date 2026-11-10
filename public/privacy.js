@@ -8,7 +8,7 @@
     box.textContent = "";
     if (!user) {
       var p = document.createElement("p");
-      p.textContent = "คุณยังไม่ได้เข้าสู่ระบบ จึงไม่มีข้อมูลบัญชีบนเซิร์ฟเวอร์ให้ลบ";
+      p.textContent = "คุณยังไม่ได้เข้าสู่ระบบ จึงไม่มีข้อมูลบัญชีผู้ใช้งานที่จัดเก็บอยู่ในระบบ";
       var a = document.createElement("a");
       a.className = "button";
       a.href = "/api/auth/google?return_to=/privacy";
@@ -18,15 +18,15 @@
       return;
     }
     var info = document.createElement("p");
-    info.textContent = "เข้าสู่ระบบเป็น " + (user.name || "") + " (" + user.email + ")";
+    info.textContent = "บัญชีที่เข้าสู่ระบบปัจจุบัน: " + (user.name || "") + " (" + user.email + ")";
     var btn = document.createElement("button");
     btn.type = "button";
     btn.className = "danger";
-    btn.textContent = "ลบบัญชีและข้อมูลการเรียนทั้งหมดของฉัน";
+    btn.textContent = "ลบบัญชีผู้ใช้งานและข้อมูลการเรียนทั้งหมด";
     var msg = document.createElement("p");
     msg.setAttribute("role", "status");
     btn.addEventListener("click", function () {
-      if (!confirm("ยืนยันลบบัญชีและข้อมูลการเรียนทั้งหมดของคุณ?\nการลบนี้กู้คืนไม่ได้")) return;
+      if (!confirm("ยืนยันการลบบัญชีผู้ใช้งานและข้อมูลการเรียนทั้งหมดของคุณอย่างถาวร?\nการดำเนินการนี้ไม่สามารถกู้คืนข้อมูลได้")) return;
       btn.disabled = true;
       fetch("/api/me", { method: "DELETE", credentials: "same-origin" })
         .then(function (res) {
@@ -38,14 +38,14 @@
             localStorage.removeItem("learnphysics.progress.v1");
             localStorage.removeItem("learnphysics.notes.v1");
           } catch (e) {}
-          box.textContent = "ลบบัญชีและข้อมูลทั้งหมดของคุณเรียบร้อยแล้ว";
+          box.textContent = "ลบบัญชีผู้ใช้งานและข้อมูลการเรียนทั้งหมดเรียบร้อยแล้ว";
           setTimeout(function () {
             location.href = "/";
           }, 2500);
         })
         .catch(function () {
           btn.disabled = false;
-          msg.textContent = "ลบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
+          msg.textContent = "ไม่สามารถลบข้อมูลได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง";
         });
     });
     box.appendChild(info);
