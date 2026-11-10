@@ -200,11 +200,12 @@ h1 {
 
 .sim h2 { font-size: 1.05rem; margin: 0 0 8px; }
 
-#plot { display: block; width: 100%; height: auto; }
+#plot, .plot { display: block; width: 100%; height: auto; }
 
 .g-line { stroke: var(--grid); stroke-width: 1; }
 .g-axis { stroke: var(--ink); stroke-width: 1.5; }
-.g-label { fill: var(--muted); font-size: 20px; font-family: "Sarabun", sans-serif; }
+.g-label { fill: var(--muted); font-family: "Sarabun", sans-serif; }
+.g-label:not([font-size]) { font-size: 14px; }
 .path { fill: none; stroke: var(--path); stroke-width: 3; stroke-linejoin: round; }
 .mark { fill: var(--mark); stroke: var(--ink); stroke-width: 1.5; }
 .ball { fill: var(--ball); stroke: var(--ink); stroke-width: 1.5; }
@@ -212,12 +213,13 @@ h1 {
 .controls {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 10px 20px;
+  gap: 12px 20px;
   margin-top: 12px;
 }
 
 @media (min-width: 560px) {
   .controls { grid-template-columns: 1fr 1fr; }
+  .controls.single, .controls:has(> .field:only-child) { grid-template-columns: 1fr; }
   .controls button { grid-column: 1 / -1; }
 }
 
@@ -471,6 +473,12 @@ button:hover { background: var(--path); border-color: var(--path); color: #fff; 
 .courses { padding-top: 28px; padding-bottom: 64px; }
 .courses h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); margin: 0 0 12px; }
 
+/* รายการหลักสูตร */
+#catalog {
+  display: block;
+  width: 100%;
+}
+
 /* แถบความคืบหน้ารวม */
 .progress-banner {
   background: var(--panel);
@@ -694,12 +702,18 @@ details.ch-card[open] > .ch-summary .ch-title::before {
 
 .lesson-links li {
   border: 0;
-  padding: 6px 0;
+  padding: 8px 10px;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   border-bottom: 1px dashed var(--grid);
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.lesson-links li:hover {
+  background: rgba(47, 91, 234, 0.06);
 }
 
 .lesson-links li:last-child {
@@ -718,24 +732,45 @@ details.ch-card[open] > .ch-summary .ch-title::before {
 
 .badge-done {
   display: inline-block;
-  padding: 1px 8px;
+  padding: 2px 8px;
   background: rgba(21, 128, 61, 0.12);
   color: var(--ok);
   border: 1.5px solid var(--ok);
   font-size: 0.78rem;
   font-weight: 600;
+  border-radius: 4px;
   vertical-align: middle;
 }
 
 .badge-prog {
   display: inline-block;
-  padding: 1px 8px;
+  padding: 2px 8px;
   background: rgba(47, 91, 234, 0.12);
   color: var(--path);
   border: 1.5px solid var(--path);
   font-size: 0.78rem;
   font-weight: 600;
+  border-radius: 4px;
   vertical-align: middle;
+}
+
+.badge-bm {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  background: rgba(255, 216, 77, 0.22);
+  color: #946c00;
+  border: 1.5px solid #d4a300;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+html[data-theme="dark"] .badge-bm {
+  color: #ffd84d;
+  border-color: #ffd84d;
+  background: rgba(255, 216, 77, 0.15);
 }
 
 .no-results {
@@ -755,13 +790,28 @@ details.ch-card[open] > .ch-summary .ch-title::before {
 .crumbs a { font-weight: 600; text-decoration: none; }
 .crumbs a:hover { color: var(--path); text-decoration: underline; }
 
+.lesson-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 6px 0 14px;
+}
+
 .level-badge {
   display: inline-block;
-  margin: 0 0 10px;
-  padding: 2px 10px;
+  margin: 0;
+  padding: 3px 12px;
   border: 2px solid var(--ink);
   background: var(--panel);
   font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.lesson-header-meta .bookmark-btn {
+  margin: 0;
+  padding: 4px 12px;
+  min-height: 32px;
   font-size: 0.88rem;
 }
 
@@ -848,7 +898,8 @@ button.secondary:hover { background: var(--mark); border-color: var(--ink); colo
 .arrow-head { fill: var(--ink); }
 .charge-pos { fill: var(--ball); stroke: var(--ink); stroke-width: 2; }
 .charge-neg { fill: var(--path); stroke: var(--ink); stroke-width: 2; }
-.charge-sign { fill: #fff; font-family: "Prompt", sans-serif; font-weight: 600; font-size: 26px; }
+.charge-sign { fill: #fff; font-family: "Prompt", sans-serif; font-weight: 600; }
+.charge-sign:not([font-size]) { font-size: 24px; }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .charge-sign { fill: #0f1a2e; }
@@ -857,7 +908,24 @@ html[data-theme="dark"] .charge-sign { fill: #0f1a2e; }
 html[data-theme="light"] .charge-sign { fill: #ffffff; }
 
 .game-info, .game-msg { margin: 0 0 10px; }
-.game-msg { margin-top: 10px; font-weight: 600; min-height: 1.7em; }
+.game-msg {
+  margin-top: 10px;
+  font-weight: 600;
+  min-height: 1.7em;
+  line-height: 1.6;
+}
+.game-msg.ok {
+  color: var(--ok);
+  font-weight: 700;
+  background: rgba(21, 128, 61, 0.12);
+  border: 1.5px solid var(--ok);
+  padding: 10px 16px;
+  border-radius: 6px;
+}
+.game-msg.bad {
+  color: var(--bad);
+  font-weight: 600;
+}
 
 /* Interactive Quiz Options */
 .quiz .q { margin: 0 0 20px; padding: 16px; background: var(--panel); border: 2px solid var(--ink); }

@@ -7,6 +7,14 @@
 
   var STORE_KEY = "learnphysics.progress.v1";
 
+  // เก็บสถานะของ UI ข้ามการเรนเดอร์ซ้ำ (เช่น เมื่อ lp:auth-ready ทำงาน)
+  var activeFilter = "all";
+  var activeSearchQuery = "";
+  var openChapterSet = null; // Set ของ chapter slug ที่เปิดอยู่ (null = ครั้งแรกให้เปิดทั้งหมด)
+  var isAllExpanded = true;
+  var hasScrolledToHash = false;
+  var loadedCategories = null;
+
   function readProgress() {
     try {
       return JSON.parse(localStorage.getItem(STORE_KEY)) || {};
@@ -37,6 +45,11 @@
     return n;
   }
 
+  function isJuniorCategory(cat) {
+    if (!cat) return false;
+    return cat.slug === "junior" || cat.slug === "m-ton" || (cat.title && cat.title.indexOf("ม.ต้น") !== -1);
+  }
+
   function render(categories) {
     box.textContent = "";
     var progressMap = readProgress();
@@ -47,10 +60,19 @@
     var seniorCount = 0;
     var passedCount = 0;
 
+    // ถ้ายังไม่เคยเก็บ openChapterSet ให้เตรียม Set ว่างไว้
+    var firstLoad = openChapterSet === null;
+    if (firstLoad) {
+      openChapterSet = new Set();
+    }
+
     // นับสถิติบทเรียน
     categories.forEach(function (cat) {
-      var isJuniorCat = cat.slug === "junior";
+      var isJuniorCat = isJuniorCategory(cat);
       cat.chapters.forEach(function (ch) {
+        if (firstLoad) {
+          openChapterSet.add(ch.slug);
+        }
         var lessons = ch.lessons || [];
         lessons.forEach(function (l) {
           totalLessons++;
@@ -104,6 +126,7 @@
     searchInput.id = "courseSearch";
     searchInput.placeholder = "ค้นหาชื่อบทเรียนหรือหัวข้อ เช่น โอห์ม, เลนส์, โพรเจกไทล์...";
     searchInput.setAttribute("aria-label", "ค้นหาบทเรียน");
+    searchInput.value = activeSearchQuery;
     searchBox.appendChild(searchInput);
     toolbar.appendChild(searchBox);
 
@@ -116,17 +139,17 @@
       { id: "junior", label: "ม.ต้น (" + juniorCount + ")" },
       { id: "senior", label: "ม.ปลาย (" + seniorCount + ")" },
       { id: "passed", label: "ที่เรียนแล้ว (" + passedCount + ")" },
-      { id: "bookmarks", label: "⭐ ที่บันทึกไว้ (Bookmarks)" },
+      { id: "bookmarks", label: "⭐ ที่บันทึกไว้ (" + bookmarkSet.length + ")" },
     ];
 
     var tabButtons = {};
-    var currentFilter = "all";
 
     filterTabs.forEach(function (tab) {
-      var btn = make("button", "filter-tab" + (tab.id === "all" ? " active" : ""), tab.label);
+      var isActive = tab.id === activeFilter;
+      var btn = make("button", "filter-tab" + (isActive ? " active" : "") + (tab.id === "bookmarks" ? " bm-tab" : ""), tab.label);
       btn.type = "button";
       btn.setAttribute("role", "tab");
-      btn.setAttribute("aria-selected", tab.id === "all" ? "true" : "false");
+      btn.setAttribute("aria-selected", isActive ? "true" : "false");
       btn.setAttribute("data-filter", tab.id);
       tabButtons[tab.id] = btn;
       tabsWrap.appendChild(btn);
@@ -134,7 +157,7 @@
     toolbar.appendChild(tabsWrap);
 
     var toolbarActions = make("div", "toolbar-actions");
-    var toggleAllBtn = make("button", "toggle-all-btn", "ย่อทั้งหมด");
+    var toggleAllBtn = make("button", "toggle-all-btn", isAllExpanded ? "ย่อทั้งหมด" : "ขยายทั้งหมด");
     toggleAllBtn.type = "button";
     toolbarActions.appendChild(toggleAllBtn);
     toolbar.appendChild(toolbarActions);
@@ -162,8 +185,20 @@
 
       cat.chapters.forEach(function (ch) {
         var card = make("details", "ch-card");
-        card.open = true;
+        var isOpen = openChapterSet.has(ch.slug);
+        card.open = isOpen;
         allDetails.push(card);
+
+        // บันทึกสถานะเมื่อผู้ใช้เปิด/ปิด
+        (function (chapterSlug, detailsEl) {
+          detailsEl.addEventListener("toggle", function () {
+            if (detailsEl.open) {
+              openChapterSet.add(chapterSlug);
+            } else {
+              openChapterSet.delete(chapterSlug);
+            }
+          });
+        })(ch.slug, card);
 
         var summary = make("summary", "ch-summary");
         var row = make("div", "row");
@@ -192,6 +227,11 @@
               item.appendChild(make("span", "badge-prog", "กำลังเรียน"));
             }
 
+            var isBookmarked = bookmarkSet.indexOf(l.slug) !== -1;
+            if (isBookmarked) {
+              item.appendChild(make("span", "badge-bm", "⭐ บันทึกไว้"));
+            }
+
             links.appendChild(item);
 
             allLessonItems.push({
@@ -203,8 +243,9 @@
               chTitle: ch.title,
               slug: l.slug,
               title: l.title,
-              level: l.level || (cat.slug === "junior" ? "junior" : "senior"),
+              level: l.level || (isJuniorCategory(cat) ? "junior" : "senior"),
               status: lStatus,
+              isBookmarked: isBookmarked,
             });
           });
           card.appendChild(links);
@@ -229,7 +270,8 @@
     // ฟังก์ชันกรองแบบ Real-time
     function applyFilter() {
       var query = searchInput.value.trim().toLowerCase();
-      var filter = currentFilter;
+      activeSearchQuery = searchInput.value;
+      var filter = activeFilter;
       var anyVisible = false;
 
       // จัดเก็บชุดของ chapters และ sections ที่มีบทเรียนแสดงผล
@@ -239,13 +281,13 @@
       allLessonItems.forEach(function (rec) {
         var matchFilter = true;
         if (filter === "junior") {
-          matchFilter = rec.level === "junior" || rec.catSlug === "junior";
+          matchFilter = rec.level === "junior" || isJuniorCategory({ slug: rec.catSlug, title: rec.catTitle });
         } else if (filter === "senior") {
-          matchFilter = rec.level === "senior" || rec.catSlug !== "junior";
+          matchFilter = rec.level === "senior" || !isJuniorCategory({ slug: rec.catSlug, title: rec.catTitle });
         } else if (filter === "passed") {
           matchFilter = rec.status.passed;
         } else if (filter === "bookmarks") {
-          matchFilter = bookmarkSet.indexOf(rec.slug) !== -1;
+          matchFilter = rec.isBookmarked || bookmarkSet.indexOf(rec.slug) !== -1;
         }
 
         var matchSearch = true;
@@ -293,12 +335,12 @@
       var target = e.target;
       if (!target || !target.classList.contains("filter-tab")) return;
       var f = target.getAttribute("data-filter");
-      if (!f || f === currentFilter) return;
+      if (!f || f === activeFilter) return;
 
-      currentFilter = f;
+      activeFilter = f;
       for (var k in tabButtons) {
         var btn = tabButtons[k];
-        if (k === currentFilter) {
+        if (k === activeFilter) {
           btn.classList.add("active");
           btn.setAttribute("aria-selected", "true");
         } else {
@@ -310,31 +352,49 @@
     });
 
     // ปุ่ม ย่อทั้งหมด / ขยายทั้งหมด
-    var allExpanded = true;
     toggleAllBtn.addEventListener("click", function () {
-      allExpanded = !allExpanded;
+      isAllExpanded = !isAllExpanded;
       allDetails.forEach(function (d) {
-        d.open = allExpanded;
+        d.open = isAllExpanded;
       });
-      toggleAllBtn.textContent = allExpanded ? "ย่อทั้งหมด" : "ขยายทั้งหมด";
+      categories.forEach(function (cat) {
+        cat.chapters.forEach(function (ch) {
+          if (isAllExpanded) {
+            openChapterSet.add(ch.slug);
+          } else {
+            openChapterSet.delete(ch.slug);
+          }
+        });
+      });
+      toggleAllBtn.textContent = isAllExpanded ? "ย่อทั้งหมด" : "ขยายทั้งหมด";
     });
 
     // ถ้ามี URL hash เช่น #cat-junior ให้เลื่อนไปหาจุดนั้นอย่างนุ่มนวล
-    if (window.location.hash) {
+    if (window.location.hash && !hasScrolledToHash) {
+      hasScrolledToHash = true;
       setTimeout(function () {
-        var targetEl = document.querySelector(window.location.hash);
-        if (targetEl) {
-          targetEl.scrollIntoView({ behavior: "smooth" });
-        }
-      }, 100);
+        try {
+          var targetEl = document.querySelector(window.location.hash);
+          if (targetEl) {
+            var insideDetails = targetEl.querySelectorAll("details.ch-card");
+            for (var i = 0; i < insideDetails.length; i++) {
+              insideDetails[i].open = true;
+            }
+            targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        } catch (e) {}
+      }, 150);
     }
-  }
 
-  var loadedCategories = null;
+    // เรียก applyFilter ทันทีเพื่อคงค่าฟิลเตอร์หรือคำค้นหาเดิม
+    applyFilter();
+  }
 
   // เมื่อระบบล็อกอินพร้อม (ผสานความคืบหน้าและบุ๊กมาร์กจากเซิร์ฟเวอร์แล้ว) วาดหน้าใหม่
   document.addEventListener("lp:auth-ready", function () {
-    if (loadedCategories && window.LPAuth && window.LPAuth.user) render(loadedCategories);
+    if (loadedCategories) {
+      render(loadedCategories);
+    }
   });
 
   fetch("/api/catalog")
@@ -344,8 +404,8 @@
     })
     .then(function (data) {
       if (!data.ok || !Array.isArray(data.categories)) throw new Error("bad data");
-      render(data.categories);
       loadedCategories = data.categories;
+      render(data.categories);
     })
     .catch(function () {
       box.textContent = "โหลดหลักสูตรไม่สำเร็จ ลองรีเฟรชหน้านี้อีกครั้ง";

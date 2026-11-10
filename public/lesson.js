@@ -477,61 +477,6 @@
       });
   }
 
-  // ------------------------------------------------------------------ หน้าหลัก
-  function render(lesson) {
-    currentLesson = lesson;
-    document.title = lesson.title + " | LearnPhysics";
-    root.textContent = "";
-
-    var crumbs = h("nav", { class: "crumbs", "aria-label": "ตำแหน่งปัจจุบัน" }, [
-      h("a", { href: "/courses", text: "หลักสูตร" }),
-      document.createTextNode(" › " + lesson.category + " › " + lesson.chapter.title),
-    ]);
-    root.appendChild(crumbs);
-    root.appendChild(h("h1", { text: lesson.title }));
-    root.appendChild(h("p", { class: "level-badge", text: LEVELS[lesson.level] || lesson.level }));
-
-    // แถบสถานะความคืบหน้าของบทเรียน (แสดงป้ายผ่านแล้ว)
-    passedBanner = h("div", { class: "lesson-passed-banner", role: "status", "aria-live": "polite" });
-    passedBanner.style.display = "none";
-    root.appendChild(passedBanner);
-
-    // การ์ดสรุปสาระสำคัญ (Key Takeaways Card)
-    if (lesson.summary) {
-      var summaryCard = h("div", { class: "summary-card" }, [
-        h("h2", { class: "summary-card-title", text: "💡 สาระสำคัญของบทนี้" }),
-        h("p", { class: "summary-card-body", text: lesson.summary }),
-      ]);
-      root.appendChild(summaryCard);
-    }
-
-    root.appendChild(videoStep(lesson));
-    root.appendChild(animStep(lesson));
-    root.appendChild(gameStep(lesson));
-    root.appendChild(quizStep(lesson));
-    root.appendChild(toolsBox(lesson));
-
-    // แถบปุ่มนำทาง บทก่อนหน้า / บทถัดไป ท้ายหน้า
-    var navContainer = h("div", { class: "lesson-nav-wrap" });
-    root.appendChild(navContainer);
-
-    resolvePrevNext(lesson, function (prev, next) {
-      lesson.prevLesson = prev;
-      lesson.nextLesson = next;
-      navContainer.textContent = "";
-      navContainer.appendChild(buildLessonNav(prev, next));
-    });
-
-    root.appendChild(
-      h("p", {
-        class: "note save-note",
-        text: "ความคืบหน้าบันทึกไว้ในเครื่องนี้ เข้าสู่ระบบด้วย Google เพื่อซิงค์ข้ามอุปกรณ์",
-      })
-    );
-
-    paintStatus();
-  }
-
   // ------------------------------------------------------ บุ๊กมาร์กและโน้ตย่อ
   var NOTES_KEY = "learnphysics.notes.v1";
 
@@ -552,39 +497,44 @@
     } catch (e) {}
   }
 
-  function toolsBox() {
-    var box = h("div", { class: "lesson-tools" });
-
+  function createBookmarkControl() {
     var bm = h("button", { type: "button", class: "bookmark-btn" });
     var bmNote = h("span", { class: "notes-hint" });
     function paintBookmark() {
       var on = window.LPAuth && window.LPAuth.bookmarks.indexOf(slug) !== -1;
       bm.classList.toggle("on", !!on);
-      bm.textContent = on ? "⭐ บันทึกบทเรียนนี้แล้ว (กดเพื่อเอาออก)" : "⭐ บันทึกบทเรียนนี้ (Bookmark)";
+      bm.textContent = on ? "⭐ บันทึกบทเรียนแล้ว" : "☆ บันทึกบทนี้";
       bm.setAttribute("aria-pressed", on ? "true" : "false");
     }
     bm.addEventListener("click", function () {
       if (!window.LPAuth || !window.LPAuth.user) {
-        bmNote.textContent = "เข้าสู่ระบบด้วย Google ก่อน จึงจะบันทึกบทเรียนไว้ได้";
+        bmNote.textContent = "เข้าสู่ระบบด้วย Google ก่อนเพื่อบันทึกบทเรียน";
         return;
       }
       bm.disabled = true;
       window.LPAuth.toggleBookmark(slug).then(function () {
         bm.disabled = false;
         paintBookmark();
+        bmNote.textContent = "";
       });
     });
-    box.appendChild(h("div", null, [bm, document.createTextNode(" "), bmNote]));
+    var wrap = h("div", { class: "bookmark-inline-wrap" }, [bm, bmNote]);
+    paintBookmark();
+    return {
+      element: wrap,
+      refresh: paintBookmark,
+    };
+  }
 
+  function createNotesBox() {
     var area = h("textarea", { id: "lesson-note", maxlength: "5000", "aria-label": "โน้ตย่อส่วนตัว", placeholder: "จดสิ่งที่อยากจำจากบทนี้..." });
     var saveBtn = h("button", { type: "button", text: "บันทึกโน้ต" });
     var hint = h("span", { class: "notes-hint", role: "status", "aria-live": "polite" });
-    var notes = h("div", { class: "notes-box" }, [
+    var notes = h("div", { class: "notes-box", style: "margin-top: 36px;" }, [
       h("h2", { text: "📝 โน้ตย่อส่วนตัวของฉัน" }),
       area,
       h("div", { class: "notes-actions" }, [saveBtn, hint]),
     ]);
-    box.appendChild(notes);
 
     function loadNote() {
       var loggedIn = window.LPAuth && window.LPAuth.user;
@@ -598,7 +548,6 @@
         var local = readLocalNote();
         if (data.ok && data.body) area.value = data.body;
         else if (local) {
-          // มีโน้ตที่จดไว้ก่อนล็อกอิน ส่งขึ้นเซิร์ฟเวอร์
           area.value = local;
           window.LPAuth.api("/api/notes/" + encodeURIComponent(slug), "POST", { body: local });
         }
@@ -627,16 +576,85 @@
         });
     });
 
-    function refresh() {
+    loadNote();
+    return {
+      element: notes,
+      refresh: loadNote,
+    };
+  }
+
+  // ------------------------------------------------------------------ หน้าหลัก
+  function render(lesson) {
+    currentLesson = lesson;
+    document.title = lesson.title + " | LearnPhysics";
+    root.textContent = "";
+
+    var crumbs = h("nav", { class: "crumbs", "aria-label": "ตำแหน่งปัจจุบัน" }, [
+      h("a", { href: "/courses", text: "หลักสูตร" }),
+      document.createTextNode(" › " + lesson.category + " › " + lesson.chapter.title),
+    ]);
+    root.appendChild(crumbs);
+    root.appendChild(h("h1", { text: lesson.title }));
+
+    // ส่วนหัวบทเรียน: ป้ายระดับชั้น + ปุ่มบุ๊กมาร์ก อยู่แถวเดียวกันอย่างสวยงาม
+    var bmCtrl = createBookmarkControl();
+    var metaRow = h("div", { class: "lesson-header-meta" }, [
+      h("span", { class: "level-badge", text: LEVELS[lesson.level] || lesson.level }),
+      bmCtrl.element,
+    ]);
+    root.appendChild(metaRow);
+
+    // แถบสถานะความคืบหน้าของบทเรียน (แสดงป้ายผ่านแล้ว)
+    passedBanner = h("div", { class: "lesson-passed-banner", role: "status", "aria-live": "polite" });
+    passedBanner.style.display = "none";
+    root.appendChild(passedBanner);
+
+    // การ์ดสรุปสาระสำคัญ (Key Takeaways Card)
+    if (lesson.summary) {
+      var summaryCard = h("div", { class: "summary-card" }, [
+        h("h2", { class: "summary-card-title", text: "💡 สาระสำคัญของบทนี้" }),
+        h("p", { class: "summary-card-body", text: lesson.summary }),
+      ]);
+      root.appendChild(summaryCard);
+    }
+
+    root.appendChild(videoStep(lesson));
+    root.appendChild(animStep(lesson));
+    root.appendChild(gameStep(lesson));
+    root.appendChild(quizStep(lesson));
+
+    // กล่องโน้ตย่อส่วนตัว วางไว้ก่อนปุ่มนำทางบทก่อนหน้า/ถัดไป
+    var notesBoxCtrl = createNotesBox();
+    root.appendChild(notesBoxCtrl.element);
+
+    // แถบปุ่มนำทาง บทก่อนหน้า / บทถัดไป อยู่ล่างสุดของหน้าบทเรียน
+    var navContainer = h("div", { class: "lesson-nav-wrap" });
+    root.appendChild(navContainer);
+
+    resolvePrevNext(lesson, function (prev, next) {
+      lesson.prevLesson = prev;
+      lesson.nextLesson = next;
+      navContainer.textContent = "";
+      navContainer.appendChild(buildLessonNav(prev, next));
+    });
+
+    root.appendChild(
+      h("p", {
+        class: "note save-note",
+        text: "ความคืบหน้าบันทึกไว้ในเครื่องนี้ เข้าสู่ระบบด้วย Google เพื่อซิงค์ข้ามอุปกรณ์",
+      })
+    );
+
+    function onAuthUpdate() {
       var vb = document.getElementById("video-done");
       if (vb) vb.checked = getProgress().video;
-      paintBookmark();
-      loadNote();
+      bmCtrl.refresh();
+      notesBoxCtrl.refresh();
       paintStatus();
     }
-    refresh();
-    document.addEventListener("lp:auth-ready", refresh);
-    return box;
+    document.addEventListener("lp:auth-ready", onAuthUpdate);
+
+    paintStatus();
   }
 
   function fail(text) {
