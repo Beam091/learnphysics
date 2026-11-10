@@ -52,6 +52,7 @@ const {
         </a>
         <nav aria-label="เมนูหลัก">
           <a href="/courses">หลักสูตร</a>
+          <span id="authSlot" class="auth-slot"></span>
           <button id="themeToggle" type="button" class="theme-toggle" aria-label="สลับโหมดมืดและสว่าง">🌙 โหมดมืด</button>
         </nav>
       </div>
@@ -68,10 +69,11 @@ const {
           คลิปสอนทั้งหมดเป็นของเจ้าของช่องบน YouTube เว็บนี้รวบรวมเฉพาะลิงก์พร้อมเครดิตช่อง
           เพื่อการศึกษา ไม่แสวงหากำไร หากเจ้าของช่องต้องการให้ถอดลิงก์ เราจะดำเนินการทันที
         </p>
-        <p class="site-version">เวอร์ชัน v3.1.0 Pro</p>
+        <p class="site-version">เวอร์ชัน v3.2.0 · <a href="/privacy">ความเป็นส่วนตัว</a></p>
       </div>
     </footer>
 
+    <script is:inline src="/auth.js"></script>
     <script is:inline>
       (function () {
         var btn = document.getElementById("themeToggle");

@@ -40,6 +40,7 @@
   function render(categories) {
     box.textContent = "";
     var progressMap = readProgress();
+    var bookmarkSet = (window.LPAuth && window.LPAuth.bookmarks) || [];
 
     var totalLessons = 0;
     var juniorCount = 0;
@@ -115,6 +116,7 @@
       { id: "junior", label: "ม.ต้น (" + juniorCount + ")" },
       { id: "senior", label: "ม.ปลาย (" + seniorCount + ")" },
       { id: "passed", label: "ที่เรียนแล้ว (" + passedCount + ")" },
+      { id: "bookmarks", label: "⭐ ที่บันทึกไว้ (Bookmarks)" },
     ];
 
     var tabButtons = {};
@@ -199,6 +201,7 @@
               catSlug: cat.slug,
               catTitle: cat.title,
               chTitle: ch.title,
+              slug: l.slug,
               title: l.title,
               level: l.level || (cat.slug === "junior" ? "junior" : "senior"),
               status: lStatus,
@@ -241,6 +244,8 @@
           matchFilter = rec.level === "senior" || rec.catSlug !== "junior";
         } else if (filter === "passed") {
           matchFilter = rec.status.passed;
+        } else if (filter === "bookmarks") {
+          matchFilter = bookmarkSet.indexOf(rec.slug) !== -1;
         }
 
         var matchSearch = true;
@@ -325,6 +330,13 @@
     }
   }
 
+  var loadedCategories = null;
+
+  // เมื่อระบบล็อกอินพร้อม (ผสานความคืบหน้าและบุ๊กมาร์กจากเซิร์ฟเวอร์แล้ว) วาดหน้าใหม่
+  document.addEventListener("lp:auth-ready", function () {
+    if (loadedCategories && window.LPAuth && window.LPAuth.user) render(loadedCategories);
+  });
+
   fetch("/api/catalog")
     .then(function (res) {
       if (!res.ok) throw new Error("bad status");
@@ -333,6 +345,7 @@
     .then(function (data) {
       if (!data.ok || !Array.isArray(data.categories)) throw new Error("bad data");
       render(data.categories);
+      loadedCategories = data.categories;
     })
     .catch(function () {
       box.textContent = "โหลดหลักสูตรไม่สำเร็จ ลองรีเฟรชหน้านี้อีกครั้ง";

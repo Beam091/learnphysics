@@ -1095,3 +1095,33 @@ html[data-theme="light"] .charge-sign { fill: #ffffff; }
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+
+/* ---------------------------------------------------------- ระบบสมาชิก (v3.2.0) */
+.auth-slot { display: inline-flex; align-items: center; }
+.auth-user { display: flex; align-items: center; gap: 8px; }
+.auth-avatar { border-radius: 50%; border: 2px solid var(--ink); }
+.auth-name { font-weight: 600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+a.auth-login, .auth-logout, .auth-link {
+  font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; text-decoration: none;
+  padding: 6px 12px; border-radius: 8px; border: 2px solid var(--ink); color: var(--ink); background: var(--panel);
+}
+a.auth-login:hover, .auth-logout:hover, .auth-link:hover { background: var(--mark); color: #14213d; }
+.auth-error { margin: 12px auto; max-width: 960px; padding: 10px 14px; border: 2px solid var(--bad); color: var(--bad); border-radius: 8px; background: var(--panel); }
+@media (max-width: 640px) { .auth-name { display: none; } }
+
+.lesson-tools { margin-top: 20px; display: grid; gap: 14px; }
+.bookmark-btn { font: inherit; font-weight: 600; cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid var(--ink); background: var(--panel); color: var(--ink); justify-self: start; }
+.bookmark-btn.on { background: var(--mark); color: #14213d; }
+.notes-box { border: 2px solid var(--ink); border-radius: 10px; padding: 14px; background: var(--panel); }
+.notes-box h2 { margin: 0 0 8px; font-size: 1.1rem; }
+.notes-box textarea { width: 100%; min-height: 110px; font: inherit; padding: 10px; border: 2px solid var(--ink); border-radius: 8px; background: var(--paper); color: var(--ink); resize: vertical; }
+.notes-actions { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.notes-actions button { font: inherit; font-weight: 600; cursor: pointer; padding: 6px 14px; border-radius: 8px; border: 2px solid var(--ink); background: var(--ink); color: var(--paper); }
+.notes-hint { font-size: 0.9rem; color: var(--muted); }
+
+.filter-tab.bm-tab { white-space: nowrap; }
+
+.privacy h2 { margin-top: 28px; }
+.account-box { border: 2px solid var(--ink); border-radius: 10px; padding: 16px; background: var(--panel); }
+button.danger { font: inherit; font-weight: 600; cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid var(--bad); background: var(--bad); color: #fff; }
+button.danger:disabled { opacity: 0.6; cursor: wait; }

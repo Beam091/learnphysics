@@ -1,5 +1,5 @@
 // หน้าบทเรียน: โหลดบทเรียนจาก /api/lessons/:slug แล้วแสดง 4 ขั้น คลิป > ซิม > เกม > แบบทดสอบ
-// ความคืบหน้าเก็บในเครื่องของผู้เรียน (localStorage) จนกว่าระบบล็อกอินจะเสร็จ
+// ความคืบหน้าเก็บในเครื่อง (localStorage) และถ้าล็อกอินด้วย Google อยู่ จะซิงค์ขึ้นเซิร์ฟเวอร์อัตโนมัติ
 (function () {
   "use strict";
 
@@ -58,6 +58,8 @@
     } catch (e) {
       /* เก็บไม่ได้ก็ไม่เป็นไร ใช้งานต่อได้ */
     }
+    // ล็อกอินอยู่: ส่งขึ้นเซิร์ฟเวอร์ด้วย (ผลควิซถูกบันทึกฝั่งเซิร์ฟเวอร์อยู่แล้วตอนตรวจ)
+    if (window.LPAuth && window.LPAuth.user) window.LPAuth.pushProgress(slug);
   }
 
   var statusEls = {};
@@ -507,6 +509,7 @@
     root.appendChild(animStep(lesson));
     root.appendChild(gameStep(lesson));
     root.appendChild(quizStep(lesson));
+    root.appendChild(toolsBox(lesson));
 
     // แถบปุ่มนำทาง บทก่อนหน้า / บทถัดไป ท้ายหน้า
     var navContainer = h("div", { class: "lesson-nav-wrap" });
@@ -522,11 +525,118 @@
     root.appendChild(
       h("p", {
         class: "note save-note",
-        text: "ความคืบหน้าบันทึกไว้ในเครื่องนี้ การบันทึกข้ามอุปกรณ์จะมาพร้อมระบบเข้าสู่ระบบด้วย Google",
+        text: "ความคืบหน้าบันทึกไว้ในเครื่องนี้ เข้าสู่ระบบด้วย Google เพื่อซิงค์ข้ามอุปกรณ์",
       })
     );
 
     paintStatus();
+  }
+
+  // ------------------------------------------------------ บุ๊กมาร์กและโน้ตย่อ
+  var NOTES_KEY = "learnphysics.notes.v1";
+
+  function readLocalNote() {
+    try {
+      return (JSON.parse(localStorage.getItem(NOTES_KEY)) || {})[slug] || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function writeLocalNote(text) {
+    try {
+      var all = JSON.parse(localStorage.getItem(NOTES_KEY)) || {};
+      if (text) all[slug] = text;
+      else delete all[slug];
+      localStorage.setItem(NOTES_KEY, JSON.stringify(all));
+    } catch (e) {}
+  }
+
+  function toolsBox() {
+    var box = h("div", { class: "lesson-tools" });
+
+    var bm = h("button", { type: "button", class: "bookmark-btn" });
+    var bmNote = h("span", { class: "notes-hint" });
+    function paintBookmark() {
+      var on = window.LPAuth && window.LPAuth.bookmarks.indexOf(slug) !== -1;
+      bm.classList.toggle("on", !!on);
+      bm.textContent = on ? "⭐ บันทึกบทเรียนนี้แล้ว (กดเพื่อเอาออก)" : "⭐ บันทึกบทเรียนนี้ (Bookmark)";
+      bm.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+    bm.addEventListener("click", function () {
+      if (!window.LPAuth || !window.LPAuth.user) {
+        bmNote.textContent = "เข้าสู่ระบบด้วย Google ก่อน จึงจะบันทึกบทเรียนไว้ได้";
+        return;
+      }
+      bm.disabled = true;
+      window.LPAuth.toggleBookmark(slug).then(function () {
+        bm.disabled = false;
+        paintBookmark();
+      });
+    });
+    box.appendChild(h("div", null, [bm, document.createTextNode(" "), bmNote]));
+
+    var area = h("textarea", { id: "lesson-note", maxlength: "5000", "aria-label": "โน้ตย่อส่วนตัว", placeholder: "จดสิ่งที่อยากจำจากบทนี้..." });
+    var saveBtn = h("button", { type: "button", text: "บันทึกโน้ต" });
+    var hint = h("span", { class: "notes-hint", role: "status", "aria-live": "polite" });
+    var notes = h("div", { class: "notes-box" }, [
+      h("h2", { text: "📝 โน้ตย่อส่วนตัวของฉัน" }),
+      area,
+      h("div", { class: "notes-actions" }, [saveBtn, hint]),
+    ]);
+    box.appendChild(notes);
+
+    function loadNote() {
+      var loggedIn = window.LPAuth && window.LPAuth.user;
+      if (!loggedIn) {
+        area.value = readLocalNote();
+        hint.textContent = "เก็บไว้ในเครื่องนี้ · เข้าสู่ระบบด้วย Google เพื่อซิงค์ข้ามอุปกรณ์";
+        return;
+      }
+      hint.textContent = "";
+      window.LPAuth.api("/api/notes/" + encodeURIComponent(slug)).then(function (data) {
+        var local = readLocalNote();
+        if (data.ok && data.body) area.value = data.body;
+        else if (local) {
+          // มีโน้ตที่จดไว้ก่อนล็อกอิน ส่งขึ้นเซิร์ฟเวอร์
+          area.value = local;
+          window.LPAuth.api("/api/notes/" + encodeURIComponent(slug), "POST", { body: local });
+        }
+      });
+    }
+
+    saveBtn.addEventListener("click", function () {
+      var text = area.value.trim();
+      if (!window.LPAuth || !window.LPAuth.user) {
+        writeLocalNote(text);
+        hint.textContent = "บันทึกในเครื่องนี้แล้ว · เข้าสู่ระบบด้วย Google เพื่อซิงค์ข้ามอุปกรณ์";
+        return;
+      }
+      saveBtn.disabled = true;
+      window.LPAuth.api("/api/notes/" + encodeURIComponent(slug), "POST", { body: text })
+        .then(function (data) {
+          if (!data.ok) throw new Error("fail");
+          writeLocalNote("");
+          hint.textContent = "บันทึกโน้ตแล้ว (ซิงค์ข้ามอุปกรณ์)";
+        })
+        .catch(function () {
+          hint.textContent = "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง";
+        })
+        .then(function () {
+          saveBtn.disabled = false;
+        });
+    });
+
+    function refresh() {
+      var vb = document.getElementById("video-done");
+      if (vb) vb.checked = getProgress().video;
+      paintBookmark();
+      loadNote();
+      paintStatus();
+    }
+    refresh();
+    document.addEventListener("lp:auth-ready", refresh);
+    return box;
   }
 
   function fail(text) {
