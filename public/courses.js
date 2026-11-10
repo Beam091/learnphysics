@@ -184,8 +184,16 @@
 
     // 3. รายการหมวดวิชาและบทเรียน
     var catalogGrid = make("div", "catalog-grid");
+    var colLeft = make("div", "catalog-col");
+    colLeft.id = "catalogColLeft";
+    var colRight = make("div", "catalog-col");
+    colRight.id = "catalogColRight";
+    catalogGrid.appendChild(colLeft);
+    catalogGrid.appendChild(colRight);
+
     var allDetails = [];
     var allLessonItems = [];
+    var categoryItems = [];
 
     categories.forEach(function (cat) {
       var section = make("section", "cat");
@@ -200,12 +208,14 @@
       section.appendChild(head);
 
       var chaptersWrap = make("div", "chapters-wrap");
+      var chCards = [];
 
       cat.chapters.forEach(function (ch) {
         var card = make("details", "ch-card");
         var isOpen = openChapterSet.has(ch.slug);
         card.open = isOpen;
         allDetails.push(card);
+        chCards.push({ card: card, ch: ch });
 
         // บันทึกสถานะเมื่อผู้ใช้เปิด/ปิด
         (function (chapterSlug, detailsEl) {
@@ -281,7 +291,11 @@
       });
 
       section.appendChild(chaptersWrap);
-      catalogGrid.appendChild(section);
+      categoryItems.push({
+        cat: cat,
+        section: section,
+        chCards: chCards
+      });
     });
 
     var noResults = make("div", "no-results", "ไม่พบบทเรียนที่ตรงกับคำค้นหา");
@@ -290,7 +304,7 @@
 
     box.appendChild(catalogGrid);
 
-    // ฟังก์ชันกรองแบบ Real-time
+    // ฟังก์ชันกรองแบบ Real-time และจัดเรียงคอลัมน์สมดุล (Balanced Masonry Packing)
     function applyFilter() {
       var query = searchInput.value.trim().toLowerCase();
       activeSearchQuery = searchInput.value;
@@ -341,14 +355,67 @@
         }
       });
 
-      // จัดการการแสดงผลของแต่ละหมวด (section)
-      var sections = catalogGrid.querySelectorAll("section.cat");
-      for (var s = 0; s < sections.length; s++) {
-        var sec = sections[s];
-        sec.style.display = visibleSections.has(sec) ? "" : "none";
-      }
+      // กรองหมวดที่มีบทเรียนแสดงผล ตามลำดับหลักสูตร
+      var visibleCatList = [];
+      categoryItems.forEach(function (catItem) {
+        if (visibleSections.has(catItem.section)) {
+          catItem.section.style.display = "";
+          visibleCatList.push(catItem);
+        } else {
+          catItem.section.style.display = "none";
+        }
+      });
 
-      noResults.style.display = anyVisible ? "none" : "block";
+      if (visibleCatList.length === 0) {
+        catalogGrid.classList.remove("single-cat");
+        colLeft.style.display = "none";
+        colRight.style.display = "none";
+        noResults.style.display = "block";
+      } else if (visibleCatList.length === 1) {
+        // กรณีมีหมวดเดียว (เช่น กรอง "ม.ต้น"): ให้แสดง 1 คอลัมน์เต็มความกว้าง โดย chapters-wrap ข้างในจะจัดเป็น 2 คอลัมน์
+        catalogGrid.classList.add("single-cat");
+        colLeft.style.display = "";
+        colRight.style.display = "none";
+        colLeft.appendChild(visibleCatList[0].section);
+        noResults.style.display = "none";
+      } else {
+        // กรณีมี 2 หมวดขึ้นไป: จัดสรรลงคอลัมน์ซ้าย-ขวาอย่างสมดุล (Shortest-Column Packing)
+        catalogGrid.classList.remove("single-cat");
+        colLeft.style.display = "";
+        colRight.style.display = "";
+        noResults.style.display = "none";
+
+        var leftHeight = 0;
+        var rightHeight = 0;
+
+        visibleCatList.forEach(function (catItem) {
+          var visibleChapters = 0;
+          var visibleOpenLessons = 0;
+
+          catItem.chCards.forEach(function (chItem) {
+            if (visibleCards.has(chItem.card)) {
+              visibleChapters++;
+              if (chItem.card.open) {
+                var lessons = chItem.card.querySelectorAll(".lesson-links li");
+                for (var k = 0; k < lessons.length; k++) {
+                  if (lessons[k].style.display !== "none") {
+                    visibleOpenLessons++;
+                  }
+                }
+              }
+            }
+          });
+
+          var weight = 2 + visibleChapters * 1.5 + visibleOpenLessons * 1.0;
+          if (leftHeight <= rightHeight) {
+            colLeft.appendChild(catItem.section);
+            leftHeight += weight;
+          } else {
+            colRight.appendChild(catItem.section);
+            rightHeight += weight;
+          }
+        });
+      }
     }
 
     // Event listeners

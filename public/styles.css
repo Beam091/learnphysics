@@ -724,17 +724,42 @@ button:hover { background: var(--path); border-color: var(--path); color: #fff; 
   color: #14213d;
 }
 
-/* Catalog Grid & Cards */
+/* Catalog Grid & Balanced Masonry Columns */
 .catalog-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 32px;
+}
+
+.catalog-col {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
 }
 
 @media (min-width: 840px) {
   .catalog-grid {
+    display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 36px 40px;
+    gap: 40px;
+    align-items: start;
+  }
+
+  .catalog-col {
+    gap: 36px;
+    min-width: 0;
+  }
+
+  .catalog-grid.single-cat {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-grid.single-cat .chapters-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: start;
   }
 }
 
