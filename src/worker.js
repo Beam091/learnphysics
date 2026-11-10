@@ -174,7 +174,7 @@ async function getLesson(env, slug) {
   };
 }
 
-async function checkQuiz(env, request, quizId) {
+async function checkQuiz(env, request, quizId, user) {
   let body;
   try {
     body = await request.json();
@@ -183,6 +183,13 @@ async function checkQuiz(env, request, quizId) {
   }
   const answers = body && typeof body.answers === "object" && body.answers ? body.answers : null;
   if (!answers) return json({ ok: false, error: "bad_request" }, { status: 400 });
+
+  if (!user) {
+    user = await getSessionUser(env, request);
+  }
+  if (!user) {
+    return json({ ok: false, error: "unauthorized" }, { status: 401, headers: NO_STORE });
+  }
 
   const quiz = await env.DB.prepare(
     `SELECT z.id, z.pass_score FROM quizzes z
@@ -209,8 +216,7 @@ async function checkQuiz(env, request, quizId) {
   const total = results.length;
   const percent = total ? Math.round((score / total) * 100) : 0;
 
-  // ถ้าผู้เรียนล็อกอินอยู่ บันทึกประวัติการสอบและคะแนนสูงสุดลงฐานข้อมูลด้วย
-  const user = await getSessionUser(env, request);
+  // ผู้เรียนล็อกอินอยู่แล้ว (ผ่านการตรวจสอบด้านบน) บันทึกประวัติการสอบและคะแนนสูงสุดลงฐานข้อมูล
   if (user) {
     try {
       await env.DB.batch([
@@ -234,7 +240,7 @@ async function checkQuiz(env, request, quizId) {
     }
   }
 
-  return json({ ok: true, score, total, percent, passed: percent >= quiz.pass_score, results });
+  return json({ ok: true, score, total, percent, passed: percent >= quiz.pass_score, results }, { headers: NO_STORE });
 }
 
 // ---------------------------------------------------------------- ระบบสมาชิก (Google Login)
@@ -517,14 +523,22 @@ export default {
 
       const lessonMatch = path.match(/^\/api\/lessons\/([a-z0-9-]+)$/);
       if (lessonMatch && request.method === "GET") {
+        const user = await getSessionUser(env, request);
+        if (!user) {
+          return json({ ok: false, error: "unauthorized" }, { status: 401, headers: NO_STORE });
+        }
         const lesson = await getLesson(env, lessonMatch[1]);
         if (!lesson) return json({ ok: false, error: "not_found" }, { status: 404 });
-        return json({ ok: true, lesson }, { headers: { "cache-control": "public, max-age=60" } });
+        return json({ ok: true, lesson }, { headers: NO_STORE });
       }
 
       const quizMatch = path.match(/^\/api\/quizzes\/(\d+)\/check$/);
       if (quizMatch && request.method === "POST") {
-        return await checkQuiz(env, request, Number(quizMatch[1]));
+        const user = await getSessionUser(env, request);
+        if (!user) {
+          return json({ ok: false, error: "unauthorized" }, { status: 401, headers: NO_STORE });
+        }
+        return await checkQuiz(env, request, Number(quizMatch[1]), user);
       }
 
       // ---- ระบบสมาชิก

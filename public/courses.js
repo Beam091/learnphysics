@@ -52,8 +52,9 @@
 
   function render(categories) {
     box.textContent = "";
-    var progressMap = readProgress();
-    var bookmarkSet = (window.LPAuth && window.LPAuth.bookmarks) || [];
+    var isLoggedIn = !!(window.LPAuth && window.LPAuth.user);
+    var progressMap = isLoggedIn ? readProgress() : {};
+    var bookmarkSet = isLoggedIn ? (window.LPAuth && window.LPAuth.bookmarks) || [] : [];
 
     var totalLessons = 0;
     var juniorCount = 0;
@@ -91,30 +92,47 @@
     });
 
     var percentPassed = totalLessons > 0 ? Math.round((passedCount / totalLessons) * 100) : 0;
+    var isLoggedIn = !!(window.LPAuth && window.LPAuth.user);
 
     // 1. แถบความคืบหน้ารวม (Overall Progress Banner)
-    var banner = make("div", "progress-banner");
-    var bannerHead = make("div", "progress-header");
-    var bannerTitle = make("strong", null, "ความคืบหน้าของคุณ: ");
-    var bannerInfo = document.createTextNode(
-      "เรียนผ่านแล้ว " + passedCount + " จาก " + totalLessons + " บทเรียน (" + percentPassed + "%)"
-    );
-    bannerHead.appendChild(bannerTitle);
-    bannerHead.appendChild(bannerInfo);
+    var banner = make("div", "progress-banner" + (!isLoggedIn ? " progress-banner-guest" : ""));
 
-    var barWrap = make("div", "progress-bar");
-    barWrap.setAttribute("role", "progressbar");
-    barWrap.setAttribute("aria-valuenow", String(percentPassed));
-    barWrap.setAttribute("aria-valuemin", "0");
-    barWrap.setAttribute("aria-valuemax", "100");
-    barWrap.setAttribute("aria-label", "ความคืบหน้ารวมในการเรียน");
+    if (!isLoggedIn) {
+      var guestWrap = make("div", "progress-guest-wrap");
+      var guestMsg = make(
+        "p",
+        "progress-guest-text",
+        "🔒 กรุณาเข้าสู่ระบบด้วย Google เพื่อเข้าเรียนทั้ง " + totalLessons + " บทเรียน และบันทึกความคืบหน้าของคุณอัตโนมัติ"
+      );
+      var guestLoginBtn = make("a", "button cta-main progress-guest-btn", "เข้าสู่ระบบด้วย Google");
+      guestLoginBtn.href = "/api/auth/google?return_to=" + encodeURIComponent("/courses");
 
-    var barFill = make("div", "progress-fill");
-    barFill.style.width = percentPassed + "%";
-    barWrap.appendChild(barFill);
+      guestWrap.appendChild(guestMsg);
+      guestWrap.appendChild(guestLoginBtn);
+      banner.appendChild(guestWrap);
+    } else {
+      var bannerHead = make("div", "progress-header");
+      var bannerTitle = make("strong", null, "ความคืบหน้าของคุณ: ");
+      var bannerInfo = document.createTextNode(
+        "เรียนผ่านแล้ว " + passedCount + " จาก " + totalLessons + " บทเรียน (" + percentPassed + "%)"
+      );
+      bannerHead.appendChild(bannerTitle);
+      bannerHead.appendChild(bannerInfo);
 
-    banner.appendChild(bannerHead);
-    banner.appendChild(barWrap);
+      var barWrap = make("div", "progress-bar");
+      barWrap.setAttribute("role", "progressbar");
+      barWrap.setAttribute("aria-valuenow", String(percentPassed));
+      barWrap.setAttribute("aria-valuemin", "0");
+      barWrap.setAttribute("aria-valuemax", "100");
+      barWrap.setAttribute("aria-label", "ความคืบหน้ารวมในการเรียน");
+
+      var barFill = make("div", "progress-fill");
+      barFill.style.width = percentPassed + "%";
+      barWrap.appendChild(barFill);
+
+      banner.appendChild(bannerHead);
+      banner.appendChild(barWrap);
+    }
     box.appendChild(banner);
 
     // 2. แถบเครื่องมือค้นหาและกรอง (Course Toolbar)
@@ -220,16 +238,21 @@
             item.appendChild(a);
 
             var lStatus = getLessonStatus(l.slug, progressMap);
-            if (lStatus.passed) {
-              var badgeText = lStatus.score !== null ? "✔ ผ่านแล้ว (" + lStatus.score + "%)" : "✔ ผ่านแล้ว";
-              item.appendChild(make("span", "badge-done", badgeText));
-            } else if (lStatus.inProgress) {
-              item.appendChild(make("span", "badge-prog", "กำลังเรียน"));
-            }
-
             var isBookmarked = bookmarkSet.indexOf(l.slug) !== -1;
-            if (isBookmarked) {
-              item.appendChild(make("span", "badge-bm", "⭐ บันทึกไว้"));
+
+            if (!isLoggedIn) {
+              item.appendChild(make("span", "badge-lock", "🔒 ต้องเข้าสู่ระบบ"));
+            } else {
+              if (lStatus.passed) {
+                var badgeText = lStatus.score !== null ? "✔ ผ่านแล้ว (" + lStatus.score + "%)" : "✔ ผ่านแล้ว";
+                item.appendChild(make("span", "badge-done", badgeText));
+              } else if (lStatus.inProgress) {
+                item.appendChild(make("span", "badge-prog", "กำลังเรียน"));
+              }
+
+              if (isBookmarked) {
+                item.appendChild(make("span", "badge-bm", "⭐ บันทึกไว้"));
+              }
             }
 
             links.appendChild(item);

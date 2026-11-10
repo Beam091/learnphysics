@@ -53,7 +53,7 @@ const {
         <nav aria-label="เมนูหลัก">
           <a href="/courses">หลักสูตร</a>
           <span id="authSlot" class="auth-slot"></span>
-          <button id="themeToggle" type="button" class="theme-toggle" aria-label="สลับโหมดมืดและสว่าง">🌙 โหมดมืด</button>
+          <button id="themeToggle" type="button" class="theme-toggle" aria-label="สลับโหมดมืดและสว่าง"><span class="theme-icon" aria-hidden="true">🌙</span><span class="theme-text">โหมดมืด</span></button>
         </nav>
       </div>
     </header>
@@ -69,7 +69,7 @@ const {
           คลิปสอนทั้งหมดเป็นของเจ้าของช่องบน YouTube เว็บนี้รวบรวมเฉพาะลิงก์พร้อมเครดิตช่อง
           เพื่อการศึกษา ไม่แสวงหากำไร หากเจ้าของช่องต้องการให้ถอดลิงก์ เราจะดำเนินการทันที
         </p>
-        <p class="site-version">เวอร์ชัน v3.2.1 · <a href="/privacy">ความเป็นส่วนตัว</a></p>
+        <p class="site-version">เวอร์ชัน v3.3.0 · <a href="/privacy">ความเป็นส่วนตัว</a></p>
       </div>
     </footer>
 
@@ -79,13 +79,11 @@ const {
         var btn = document.getElementById("themeToggle");
         if (!btn) return;
         function updateBtn(theme) {
-          if (theme === "dark") {
-            btn.textContent = "☀️ โหมดสว่าง";
-            btn.setAttribute("aria-label", "สลับโหมดมืดและสว่าง (ปัจจุบัน: โหมดมืด)");
-          } else {
-            btn.textContent = "🌙 โหมดมืด";
-            btn.setAttribute("aria-label", "สลับโหมดมืดและสว่าง (ปัจจุบัน: โหมดสว่าง)");
-          }
+          var isDark = theme === "dark";
+          var icon = isDark ? "☀️" : "🌙";
+          var text = isDark ? "โหมดสว่าง" : "โหมดมืด";
+          btn.innerHTML = '<span class="theme-icon" aria-hidden="true">' + icon + '</span><span class="theme-text">' + text + '</span>';
+          btn.setAttribute("aria-label", "สลับโหมดมืดและสว่าง (ปัจจุบัน: " + text + ")");
         }
         var cur = document.documentElement.getAttribute("data-theme");
         if (!cur) {
