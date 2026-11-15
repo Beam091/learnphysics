@@ -61,6 +61,25 @@
 
   var frame = null;
   var cur = { vx: 0, vy: 0, T: 0, R: 0, H: 0 };
+  var liveBallT = 0;
+  var stage3d = window.LP3D
+    ? window.LP3D.attach(svg.parentNode, svg, {
+        kind: "projectile",
+        getState: function () {
+          return {
+            angle: Number(angleIn.value),
+            speed: Number(speedIn.value),
+            vx: cur.vx,
+            vy: cur.vy,
+            T: cur.T,
+            R: cur.R,
+            H: cur.H,
+            ballT: liveBallT,
+            revealed: true,
+          };
+        },
+      })
+    : null;
 
   function compute() {
     var angle = (Number(angleIn.value) * Math.PI) / 180;
@@ -76,6 +95,7 @@
   }
 
   function placeBall(t) {
+    liveBallT = t;
     var p = pos(t);
     ball.setAttribute("cx", sx(p.x));
     ball.setAttribute("cy", sy(Math.max(p.y, 0)));
@@ -108,12 +128,15 @@
     rangeOut.textContent = cur.R.toFixed(1) + " ม.";
     heightOut.textContent = cur.H.toFixed(1) + " ม.";
     timeOut.textContent = cur.T.toFixed(2) + " วิ";
+    if (stage3d) stage3d.renderNow();
   }
 
   function shoot() {
     stop();
+    if (stage3d) stage3d.pulse();
     if (reduceMotion) {
       placeBall(cur.T);
+      if (stage3d) stage3d.renderNow();
       return;
     }
     var start = performance.now();
@@ -121,10 +144,12 @@
       var t = (now - start) / 1000;
       if (t >= cur.T) {
         placeBall(cur.T);
+        if (stage3d) stage3d.renderNow();
         frame = null;
         return;
       }
       placeBall(t);
+      if (stage3d) stage3d.renderNow();
       frame = requestAnimationFrame(step);
     }
     placeBall(0);

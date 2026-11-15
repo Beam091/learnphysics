@@ -305,6 +305,7 @@
     var rangeOut = h("dd", { text: "-" }), heightOut = h("dd", { text: "-" }), timeOut = h("dd", { text: "-" });
     var interacted = false, frame = null;
     var cur = { vx: 0, vy: 0, T: 0, R: 0, H: 0 };
+    var liveBallT = 0, targetXt = null, targetTol = 4, shotRevealed = false, stage3d = null;
 
     function interact() {
       if (!interacted) { interacted = true; if (opts.onInteract) opts.onInteract(); }
@@ -322,6 +323,7 @@
     }
     function pos(t) { return { x: cur.vx * t, y: cur.vy * t - 0.5 * G * t * t }; }
     function placeBall(t) {
+      liveBallT = t;
       var p = pos(t);
       ball.setAttribute("cx", sx(p.x));
       ball.setAttribute("cy", sy(Math.max(p.y, 0)));
@@ -341,6 +343,7 @@
 
     function update() {
       stop();
+      shotRevealed = false;
       compute();
       impactRing.setAttribute("opacity", "0");
       if (isGame) {
@@ -365,9 +368,11 @@
         heightOut.textContent = cur.H.toFixed(1) + " ม.";
         timeOut.textContent = cur.T.toFixed(2) + " วิ";
       }
+      if (stage3d) stage3d.renderNow();
     }
 
     function finish() {
+      shotRevealed = true;
       setFullPath(1);
       path.removeAttribute("stroke-dasharray");
       apex.style.visibility = "visible";
@@ -382,6 +387,7 @@
       heightOut.textContent = cur.H.toFixed(1) + " ม.";
       timeOut.textContent = cur.T.toFixed(2) + " วิ";
       frame = null;
+      if (stage3d) { stage3d.renderNow(); stage3d.pulse(); }
       if (opts.onLand) opts.onLand(cur.R);
     }
 
@@ -389,6 +395,7 @@
       interact();
       stop();
       compute();
+      shotRevealed = true;
       if (isGame && window.LPSound) window.LPSound.launch();
       if (reducedMotion()) { finish(); return; }
       var animDur = isGame ? 0.65 : cur.T;
@@ -404,14 +411,37 @@
           setFullPath(frac);
         }
         placeBall(simT);
+        if (stage3d) stage3d.renderNow();
         frame = requestAnimationFrame(step);
       }
       placeBall(0);
+      if (stage3d) stage3d.renderNow();
       frame = requestAnimationFrame(step);
     }
     shootBtn.addEventListener("click", shoot);
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      stage3d = window.LP3D.attach(container, svg, {
+        kind: "projectile",
+        getState: function () {
+          return {
+            vx: cur.vx,
+            vy: cur.vy,
+            T: cur.T,
+            R: cur.R,
+            H: cur.H,
+            angle: Number(angleF.input.value),
+            speed: Number(speedF.input.value),
+            ballT: liveBallT,
+            isGame: isGame,
+            revealed: !isGame || shotRevealed,
+            targetXt: targetXt,
+            targetTol: targetTol
+          };
+        }
+      });
+    }
     container.appendChild(h("div", { class: "controls" }, [angleF.root, speedF.root]));
     var actBtns = [shootBtn];
     if (opts.extraActions && Array.isArray(opts.extraActions)) {
@@ -432,12 +462,15 @@
       shootBtn: shootBtn,
       resetPreview: update,
       setTarget: function (xt, tol) {
+        targetXt = xt;
+        targetTol = tol || 4;
         clear(targetG);
         var x1 = sx(xt - tol), x2 = sx(xt + tol), cx = sx(xt), cy = sy(0);
         svgEl(targetG, "rect", { x: x1, y: cy - 14, width: Math.max(10, x2 - x1), height: 14, class: "target" });
         svgEl(targetG, "line", { x1: cx, y1: cy - 14, x2: cx, y2: cy - 42, class: "g-axis", "stroke-width": 2 });
         svgEl(targetG, "polygon", { points: cx + "," + (cy - 42) + " " + (cx + 18) + "," + (cy - 34) + " " + cx + "," + (cy - 26), class: "ball" });
         svgEl(targetG, "text", { x: cx, y: cy - 48, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "เป้า (" + xt + " ม.)";
+        if (stage3d) stage3d.renderNow();
       },
     };
   }
@@ -505,6 +538,18 @@
     }
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      window.LP3D.attach(container, svg, {
+        kind: "coulomb",
+        getState: function () {
+          return {
+            q1: Number(q1F.input.value),
+            q2: signBox.checked ? -Number(q2F.input.value) : Number(q2F.input.value),
+            r: Number(rF.input.value),
+          };
+        },
+      });
+    }
     container.appendChild(h("div", { class: "controls three" }, [q1F.root, q2F.root, rF.root, signRow]));
     container.appendChild(h("dl", { class: "results two", "aria-live": "polite" }, [
       h("div", null, [h("dt", { text: "ขนาดแรง" }), forceOut]),
@@ -556,6 +601,12 @@
     }
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      window.LP3D.attach(container, svg, {
+        kind: "reflection",
+        getState: function () { return { angle: Number(angleF.input.value) }; },
+      });
+    }
     container.appendChild(h("div", { class: "controls" }, [angleF.root]));
     container.appendChild(h("dl", { class: "results two", "aria-live": "polite" }, [
       h("div", null, [h("dt", { text: "มุมตกกระทบ = มุมสะท้อน" }), out]),
@@ -718,6 +769,15 @@
       pOut.textContent = ((V * V) / R).toFixed(2) + " วัตต์";
     }
     container.appendChild(svg);
+    if (window.LP3D) {
+      window.LP3D.attach(container, svg, {
+        kind: "ohm-law",
+        getState: function () {
+          var V = Number(vF.input.value), R = Number(rF.input.value);
+          return { V: V, R: R, I: V / R };
+        },
+      });
+    }
     container.appendChild(h("div", { class: "controls" }, [vF.root, rF.root]));
     container.appendChild(h("dl", { class: "results two", "aria-live": "polite" }, [
       h("div", null, [h("dt", { text: "กระแสไฟฟ้า I = V/R" }), iOut]),
@@ -778,6 +838,14 @@
       if (deg > 0.5) svgEl(svg, "text", { x: hx - 12, y: hy - 40, "text-anchor": "end", class: "g-label" }).textContent = "θ₁ = " + deg + "°";
     }
     container.appendChild(svg);
+    if (window.LP3D) {
+      window.LP3D.attach(container, svg, {
+        kind: "snell-law",
+        getState: function () {
+          return { angle: Number(aF.input.value), n1: Number(n1F.input.value), n2: Number(n2F.input.value) };
+        },
+      });
+    }
     container.appendChild(h("div", { class: "controls three" }, [aF.root, n1F.root, n2F.root]));
     container.appendChild(h("dl", { class: "results two", "aria-live": "polite" }, [
       h("div", null, [h("dt", { text: "มุมหักเห θ₂" }), outAngle]),
@@ -829,6 +897,14 @@
       tOut.textContent = (1 / f).toFixed(3) + " วินาที";
     }
     container.appendChild(svg);
+    if (window.LP3D) {
+      window.LP3D.attach(container, svg, {
+        kind: "harmonic-wave",
+        getState: function () {
+          return { f: Number(fF.input.value), lambda: Number(lF.input.value), amp: Number(aF.input.value) };
+        },
+      });
+    }
     container.appendChild(h("div", { class: "controls three" }, [fF.root, lF.root, aF.root]));
     container.appendChild(h("dl", { class: "results two", "aria-live": "polite" }, [
       h("div", null, [h("dt", { text: "อัตราเร็วคลื่น v = fλ" }), vOut]),
@@ -904,21 +980,31 @@
       preview();
     }
 
+    var stage3d = null;
     checkBtn.addEventListener("click", function () {
       var I = Number(vF.input.value) / Number(rF.input.value);
       var target = hud.state.target;
       var diff = I - target;
       var isHit = Math.abs(diff) <= tol;
-      if (window.LPSound && !isHit) { /* miss sound handled in recordAttempt */ }
       revealed = true;
       lastHit = isHit;
       preview();
+      if (stage3d) stage3d.pulse();
       var winTxt = "วงจรทำงานสมบูรณ์! วัดกระแสได้ I = " + I.toFixed(2) + " A";
       var missTxt = "วัดกระแสได้ I = " + I.toFixed(2) + " A " + (diff < 0 ? "(น้อยไป " : "(มากไป ") + Math.abs(diff).toFixed(2) + " A)";
       hud.recordAttempt(isHit, winTxt, missTxt);
     });
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      stage3d = window.LP3D.attach(container, svg, {
+        kind: "ohm-law",
+        getState: function () {
+          var V = Number(vF.input.value), R = Number(rF.input.value);
+          return { V: V, R: R, I: V / R, isGame: true, revealed: revealed, targetI: hud.state.target };
+        },
+      });
+    }
     container.appendChild(h("div", { class: "controls" }, [vF.root, rF.root]));
     container.appendChild(h("div", { class: "actions" }, [checkBtn, hud.nextBtn]));
     container.appendChild(hud.msg);
@@ -1002,6 +1088,7 @@
       drawWave(0);
     }
 
+    var stage3d = null;
     tuneBtn.addEventListener("click", function () {
       stopAnim();
       var freq = Number(fF.input.value), lam = Number(lF.input.value);
@@ -1010,6 +1097,7 @@
       var diff = v - target;
       var isHit = Math.abs(diff) <= tol;
       revealed = true;
+      if (stage3d) stage3d.pulse();
       var winTxt = "จูนคลื่นสำเร็จ! ได้อัตราเร็ว v = " + v.toFixed(1) + " ม./วิ";
       var missTxt = "วัดได้ v = " + v.toFixed(1) + " ม./วิ " + (diff < 0 ? "(ช้าไป " : "(เร็วไป ") + Math.abs(diff).toFixed(1) + " ม./วิ)";
       hud.recordAttempt(isHit, winTxt, missTxt);
@@ -1037,6 +1125,21 @@
     });
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      stage3d = window.LP3D.attach(container, svg, {
+        kind: "harmonic-wave",
+        getState: function () {
+          return {
+            f: Number(fF.input.value),
+            lambda: Number(lF.input.value),
+            amp: 1.8,
+            isGame: true,
+            revealed: revealed,
+            targetV: hud.state.target,
+          };
+        },
+      });
+    }
     container.appendChild(h("div", { class: "controls" }, [fF.root, lF.root]));
     container.appendChild(h("div", { class: "actions" }, [tuneBtn, hud.nextBtn]));
     container.appendChild(hud.msg);
@@ -1149,6 +1252,15 @@
     });
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      var nf3d = window.LP3D.attach(container, svg, {
+        kind: "newton-force",
+        getState: function () {
+          return { F: Number(fF.input.value), m: Number(mF.input.value), mu: Number(muF.input.value), animX: boxOffset / 160 };
+        },
+      });
+      testBtn.addEventListener("click", function () { if (nf3d) nf3d.pulse(); });
+    }
     container.appendChild(h("div", { class: "controls three" }, [fF.root, mF.root, muF.root, testBtn]));
     container.appendChild(h("dl", { class: "results", "aria-live": "polite" }, [
       h("div", null, [h("dt", { text: "แรงเสียดทาน f" }), fOut]),
@@ -1265,6 +1377,15 @@
     });
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      var lm3d = window.LP3D.attach(container, svg, {
+        kind: "linear-motion",
+        getState: function () {
+          return { u: Number(uF.input.value), a: Number(aF.input.value), t: Number(tF.input.value) };
+        },
+      });
+      playBtn.addEventListener("click", function () { if (lm3d) lm3d.pulse(); });
+    }
     container.appendChild(h("div", { class: "controls three" }, [uF.root, aF.root, tF.root, playBtn]));
     container.appendChild(h("dl", { class: "results", "aria-live": "polite" }, [
       h("div", null, [h("dt", { text: "ความเร็วปลาย v = u+at" }), vOut]),
@@ -1390,6 +1511,19 @@
     });
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      var mc3d = window.LP3D.attach(container, svg, {
+        kind: "momentum-collision",
+        getState: function () {
+          return {
+            m1: Number(m1F.input.value), u1: Number(u1F.input.value),
+            m2: Number(m2F.input.value), u2: Number(u2F.input.value),
+            elastic: !stickBox.checked,
+          };
+        },
+      });
+      collideBtn.addEventListener("click", function () { if (mc3d) mc3d.pulse(); });
+    }
     container.appendChild(h("div", { class: "controls" }, [m1F.root, u1F.root, m2F.root, u2F.root, stickRow, collideBtn]));
     container.appendChild(h("dl", { class: "results", "aria-live": "polite" }, [
       h("div", null, [h("dt", { text: "โมเมนตัมรวมก่อนชน" }), pOut]),
@@ -1424,7 +1558,7 @@
     var kF = field("ค่าคงตัวสปริง k =", "น./ม.", { min: kc.min, max: kc.max, step: kc.step || 4, value: kc.default }, function () { interact(); update(); });
 
     var fcOut = h("dd", { text: "-" }), tOut = h("dd", { text: "-" }), fOut = h("dd", { text: "-" });
-    var angle = 0, lastTime = null;
+    var angle = 0, lastTime = null, stage3d = null;
 
     function renderFrame(theta) {
       var m = Number(mF.input.value), r = Number(rF.input.value), k = Number(kF.input.value);
@@ -1491,6 +1625,7 @@
     }
 
     function update() {
+      if (stage3d) stage3d.renderNow();
       if (frame !== null) {
         cancelAnimationFrame(frame);
         frame = null;
@@ -1525,6 +1660,14 @@
     }
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      stage3d = window.LP3D.attach(container, svg, {
+        kind: "circular-shm",
+        getState: function () {
+          return { m: Number(mF.input.value), r: Number(rF.input.value), k: Number(kF.input.value) };
+        },
+      });
+    }
     container.appendChild(h("div", { class: "controls three" }, [mF.root, rF.root, kF.root]));
     container.appendChild(h("dl", { class: "results", "aria-live": "polite" }, [
       h("div", null, [h("dt", { text: "แรงสู่ศูนย์กลาง Fc" }), fcOut]),
@@ -1543,7 +1686,7 @@
     var hc = config.depth || { min: 0.5, max: 8, step: 0.5, default: 3 };
     var obc = config.objectDensity || { min: 400, max: 1600, step: 50, default: 800 };
     var G = 9.8, P0 = 101.3;
-    var interacted = false;
+    var interacted = false, stage3d = null;
 
     function interact() { if (!interacted) { interacted = true; if (opts.onInteract) opts.onInteract(); } }
 
@@ -1614,9 +1757,22 @@
       pgOut.textContent = Pgauge.toFixed(1) + " kPa";
       pTotOut.textContent = Ptotal.toFixed(1) + " kPa";
       fbOut.textContent = FB.toFixed(1) + " นิวตัน";
+      if (stage3d) stage3d.renderNow();
     }
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      stage3d = window.LP3D.attach(container, svg, {
+        kind: "fluid-pressure",
+        getState: function () {
+          return {
+            rho: Number(rhoF.input.value),
+            h: Number(hF.input.value),
+            rhoObj: Number(obF.input.value)
+          };
+        }
+      });
+    }
     container.appendChild(h("div", { class: "controls three" }, [rhoF.root, hF.root, obF.root]));
     container.appendChild(h("dl", { class: "results", "aria-live": "polite" }, [
       h("div", null, [h("dt", { text: "ความดันเกจ ρgh" }), pgOut]),
@@ -1634,7 +1790,7 @@
     var tc = config.temperature || { min: 200, max: 600, step: 20, default: 300 };
     var vc = config.volume || { min: 2, max: 10, step: 0.5, default: 5 };
     var nc = config.moles || { min: 0.5, max: 3.0, step: 0.5, default: 1.0 };
-    var R = 8.314, interacted = false, frame = null;
+    var R = 8.314, interacted = false, frame = null, stage3d = null;
     var isVisible = true;
 
     function interact() { if (!interacted) { interacted = true; if (opts.onInteract) opts.onInteract(); } }
@@ -1726,6 +1882,7 @@
     }
 
     function update() {
+      if (stage3d) stage3d.renderNow();
       if (frame !== null) {
         cancelAnimationFrame(frame);
         frame = null;
@@ -1760,6 +1917,15 @@
     }
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      stage3d = window.LP3D.attach(container, svg, {
+        kind: "ideal-gas",
+        getState: function () {
+          var T = Number(tF.input.value), V = Number(vF.input.value), n = Number(nF.input.value);
+          return { T: T, V: V, n: n, P: (n * R * T) / V, isGame: false, revealed: true };
+        }
+      });
+    }
     container.appendChild(h("div", { class: "controls three" }, [tF.root, vF.root, nF.root]));
     container.appendChild(h("dl", { class: "results", "aria-live": "polite" }, [
       h("div", null, [h("dt", { text: "ความดันแก๊ส P = nRT/V" }), pOut]),
@@ -1776,7 +1942,7 @@
     config = config || {};
     var sc = config.objectDistance || { min: 10, max: 60, step: 1, default: 30 };
     var fc = config.focalLength || { min: 8, max: 25, step: 1, default: 15 };
-    var interacted = false;
+    var interacted = false, stage3d = null;
 
     function interact() { if (!interacted) { interacted = true; if (opts.onInteract) opts.onInteract(); } }
 
@@ -1844,6 +2010,7 @@
         svgEl(svg, "line", { x1: objX, y1: midY - objH, x2: extX, y2: extY2, class: "ray" });
 
         svgEl(svg, "text", { x: midX + 150, y: midY - 35, "text-anchor": "middle", class: "g-label", "font-size": "14px" }).textContent = "รังสีขนานกัน (เกิดภาพที่ระยะอนันต์)";
+        if (stage3d) stage3d.renderNow();
         return;
       }
 
@@ -1878,9 +2045,24 @@
       spOut.textContent = (sp > 0 ? "+" : "") + sp.toFixed(1) + " ซม.";
       mOut.textContent = Math.abs(m).toFixed(2) + " เท่า";
       kindOut.textContent = sp > 0 ? "ภาพจริง (หัวกลับ)" : "ภาพเสมือน (หัวตั้ง)";
+      if (stage3d) stage3d.renderNow();
     }
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      stage3d = window.LP3D.attach(container, svg, {
+        kind: "thin-lens",
+        getState: function () {
+          return {
+            f: Number(fF.input.value),
+            s: Number(sF.input.value),
+            isConcave: concaveBox.checked,
+            isGame: false,
+            revealed: true
+          };
+        }
+      });
+    }
     container.appendChild(h("div", { class: "controls three" }, [sF.root, fF.root, concaveRow]));
     container.appendChild(h("dl", { class: "results", "aria-live": "polite" }, [
       h("div", null, [h("dt", { text: "ระยะภาพ s'" }), spOut]),
@@ -1897,7 +2079,7 @@
     config = config || {};
     var bc = config.bField || { min: 0.2, max: 2.0, step: 0.1, default: 0.8 };
     var vc = config.speed || { min: 2, max: 20, step: 1, default: 10 };
-    var interacted = false;
+    var interacted = false, stage3d = null;
 
     function interact() { if (!interacted) { interacted = true; if (opts.onInteract) opts.onInteract(); } }
 
@@ -1987,9 +2169,22 @@
         out2.textContent = I.toFixed(2) + " แอมแปร์";
         out3.textContent = "ไหลทวนเข็มนาฬิกา (ต้านการเปลี่ยนฟลักซ์)";
       }
+      if (stage3d) stage3d.renderNow();
     }
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      stage3d = window.LP3D.attach(container, svg, {
+        kind: "magnetic-induction",
+        getState: function () {
+          return {
+            B: Number(bF.input.value),
+            v: Number(vF.input.value),
+            wireMode: modeBox.checked
+          };
+        }
+      });
+    }
     container.appendChild(h("div", { class: "controls three" }, [bF.root, vF.root, modeRow]));
     container.appendChild(h("dl", { class: "results", "aria-live": "polite" }, [
       h("div", null, [label1, out1]),
@@ -2005,7 +2200,7 @@
     opts = opts || {};
     config = config || {};
     var mode = config.mode || "photoelectric";
-    var interacted = false;
+    var interacted = false, stage3d = null;
 
     function interact() { if (!interacted) { interacted = true; if (opts.onInteract) opts.onInteract(); } }
 
@@ -2021,6 +2216,7 @@
     var dt3 = h("dt", { text: "-" }), dd3 = h("dd", { text: "-" });
     var noteP = h("p", { class: "note" });
     var controlsRow = h("div", { class: "controls" });
+    var get3dState = function () { return { mode: mode }; };
 
     if (mode === "decay") {
       var hlc = config.halfLife || { min: 1, max: 15, step: 1, default: 4 };
@@ -2085,7 +2281,12 @@
         dd1.textContent = rem.toFixed(0) + " / " + N0;
         dd2.textContent = decayed.toFixed(0) + " (" + ((decayed / N0) * 100).toFixed(1) + "%)";
         dd3.textContent = nPeriods.toFixed(2) + " รอบ";
+        if (stage3d) stage3d.renderNow();
       }
+      get3dState = function () {
+        var T_half = Number(hlF.input.value), t = Number(tF.input.value);
+        return { mode: "decay", remainFrac: Math.pow(0.5, t / T_half) };
+      };
       updateDecay();
 
     } else if (mode === "relativity") {
@@ -2140,7 +2341,11 @@
         dd1.textContent = gamma.toFixed(2);
         dd2.textContent = (100 / gamma).toFixed(1) + " เมตร (" + ((1 / gamma) * 100).toFixed(0) + "%)";
         dd3.textContent = gamma.toFixed(2) + " เท่าของเดิม";
+        if (stage3d) stage3d.renderNow();
       }
+      get3dState = function () {
+        return { mode: "relativity", beta: Number(sF.input.value) };
+      };
       updateRel();
 
     } else {
@@ -2212,11 +2417,22 @@
         dd1.textContent = E.toFixed(2) + " eV";
         dd2.textContent = Ek > 0 ? Ek.toFixed(2) + " eV" : "0 eV (hf ≤ W₀)";
         dd3.textContent = f0.toFixed(2) + " ×10¹⁴ Hz";
+        if (stage3d) stage3d.renderNow();
       }
+      get3dState = function () {
+        var f = Number(fqF.input.value), W0 = Number(w0F.input.value);
+        return { mode: "photoelectric", W0: W0, f: f, Ek: Math.max(0, 0.4136 * f - W0), isGame: false, revealed: true };
+      };
       updatePE();
     }
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      stage3d = window.LP3D.attach(container, svg, {
+        kind: "modern-quantum",
+        getState: function () { return get3dState(); }
+      });
+    }
     container.appendChild(controlsRow);
     container.appendChild(h("dl", { class: "results", "aria-live": "polite" }, [
       h("div", null, [dt1, dd1]),
@@ -2235,7 +2451,7 @@
     var fc = config.force || { min: 10, max: 100, default: 35 };
     var mc = config.mass || { min: 1, max: 10, default: 5 };
     var G = 9.8, mu = 0.2;
-    var revealed = false, animFrame = null, boxOffset = 0, shakeX = 0, bestSol = { f: 40, m: 5 };
+    var revealed = false, animFrame = null, boxOffset = 0, shakeX = 0, bestSol = { f: 40, m: 5 }, stage3d = null;
 
     var hud = createGameHUD(container, {
       maxStages: 3,
@@ -2289,6 +2505,7 @@
       } else {
         svgEl(svg, "text", { x: 340, y: 36, "text-anchor": "middle", class: "g-label" }).textContent = "ความเร่ง a = ? ม./วิ²  (กดออกแรงดึงกล่องเพื่อทดสอบ)";
       }
+      if (stage3d) stage3d.renderNow();
     }
 
     function pick() {
@@ -2344,6 +2561,7 @@
       var winTxt = "แรงและมวลสมดุล! ได้ความเร่ง a = " + a.toFixed(2) + " ม./วิ²";
       var missTxt = "วัดความเร่งได้ a = " + a.toFixed(2) + " ม./วิ² " + (diff < 0 ? "(น้อยไป " : "(มากไป ") + Math.abs(diff).toFixed(2) + " ม./วิ²)";
       hud.recordAttempt(isHit, winTxt, missTxt);
+      if (stage3d) { stage3d.renderNow(); stage3d.pulse(); }
 
       if (reducedMotion()) {
         boxOffset = a > 0 ? Math.min(260, a * 45) : 0;
@@ -2371,6 +2589,26 @@
     });
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      stage3d = window.LP3D.attach(container, svg, {
+        kind: "newton-force",
+        getState: function () {
+          var F = Number(fF.input.value), m = Number(mF.input.value);
+          var maxFriction = mu * m * G;
+          var a = F > maxFriction ? (F - maxFriction) / m : 0;
+          return {
+            F: F,
+            m: m,
+            mu: mu,
+            acc: a,
+            animX: boxOffset / 260,
+            isGame: true,
+            revealed: revealed,
+            targetAcc: hud.state.target
+          };
+        }
+      });
+    }
     container.appendChild(h("div", { class: "controls" }, [fF.root, mF.root]));
     container.appendChild(h("div", { class: "actions" }, [checkBtn, hud.nextBtn]));
     container.appendChild(hud.msg);
@@ -2385,7 +2623,7 @@
     var tr = config.targetDistance || config.targetImageDist || config.target || [22, 55];
     var fVal = config.focalLength || 15;
     var sc = config.objectDistance || { min: 18, max: 60, default: 30 };
-    var revealed = false, animFrame = null, rayFrac = 0, bestSol = { s: 30 };
+    var revealed = false, animFrame = null, rayFrac = 0, bestSol = { s: 30 }, stage3d = null;
 
     var hud = createGameHUD(container, {
       maxStages: 3,
@@ -2434,6 +2672,7 @@
 
       if (!revealed) {
         svgEl(svg, "text", { x: 470, y: 196, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "s' = ? ซม. (กดเปิดลำแสงเพื่อดูจุดโฟกัสภาพ)";
+        if (stage3d) stage3d.renderNow();
         return;
       }
 
@@ -2454,6 +2693,7 @@
       } else {
         svgEl(svg, "text", { x: 460, y: midY - 12, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "s ≤ f เกิดภาพเสมือน (ไม่ตกบนฉาก)";
       }
+      if (stage3d) stage3d.renderNow();
     }
 
     function pick() {
@@ -2504,6 +2744,7 @@
         ? "ระยะวัตถุ s ≤ f (" + fVal + " ซม.) ไม่เกิดภาพจริงบนฉาก"
         : "ภาพตกที่ s' = " + sp.toFixed(1) + " ซม. " + (diff < 0 ? "(ตกหน้าฉาก " : "(ตกหลังฉาก ") + Math.abs(diff).toFixed(1) + " ซม.)";
       hud.recordAttempt(isHit, winTxt, missTxt);
+      if (stage3d) { stage3d.renderNow(); stage3d.pulse(); }
 
       if (reducedMotion()) {
         rayFrac = 1;
@@ -2522,6 +2763,21 @@
     });
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      stage3d = window.LP3D.attach(container, svg, {
+        kind: "thin-lens",
+        getState: function () {
+          return {
+            f: fVal,
+            s: Number(sF.input.value),
+            isConcave: false,
+            isGame: true,
+            revealed: revealed,
+            targetDist: hud.state.target
+          };
+        }
+      });
+    }
     container.appendChild(h("div", { class: "controls single" }, [sF.root]));
     container.appendChild(h("div", { class: "actions" }, [checkBtn, hud.nextBtn]));
     container.appendChild(hud.msg);
@@ -2537,7 +2793,7 @@
     var tc = config.temperature || { min: 200, max: 600, default: 300 };
     var vc = config.volume || { min: 2, max: 10, step: 0.5, default: 5 };
     var R = 8.314;
-    var revealed = false, animFrame = null, bestSol = { t: 300, v: 5 };
+    var revealed = false, animFrame = null, bestSol = { t: 300, v: 5 }, stage3d = null;
 
     var hud = createGameHUD(container, {
       maxStages: 3,
@@ -2603,6 +2859,7 @@
       } else {
         svgEl(svg, "text", { x: 560, y: 172, "text-anchor": "middle", class: "g-label", "font-size": "14px" }).textContent = "P = ? kPa (รออัดวัด)";
       }
+      if (stage3d) stage3d.renderNow();
     }
 
     function pick() {
@@ -2651,6 +2908,7 @@
       var winTxt = "ควบคุมความดันสำเร็จ! วัดได้ P = " + P.toFixed(1) + " kPa";
       var missTxt = "ความดันที่วัดได้ P = " + P.toFixed(1) + " kPa " + (diff < 0 ? "(ต่ำไป " : "(สูงไป ") + Math.abs(diff).toFixed(1) + " kPa)";
       hud.recordAttempt(isHit, winTxt, missTxt);
+      if (stage3d) { stage3d.renderNow(); stage3d.pulse(); }
 
       if (reducedMotion()) {
         renderPiston(1);
@@ -2667,6 +2925,23 @@
     });
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      stage3d = window.LP3D.attach(container, svg, {
+        kind: "ideal-gas",
+        getState: function () {
+          var T = Number(tF.input.value), V = Number(vF.input.value);
+          return {
+            T: T,
+            V: V,
+            n: 1,
+            P: (1 * R * T) / V,
+            isGame: true,
+            revealed: revealed,
+            targetP: hud.state.target
+          };
+        }
+      });
+    }
     container.appendChild(h("div", { class: "controls" }, [tF.root, vF.root]));
     container.appendChild(h("div", { class: "actions" }, [checkBtn, hud.nextBtn]));
     container.appendChild(hud.msg);
@@ -2682,7 +2957,7 @@
     var W0 = config.workFunction || 2.2;
     var fc = config.frequency || { min: 4, max: 16, step: 0.2, default: 7 };
     var hConst = 0.4136;
-    var revealed = false, animFrame = null, bestSol = { f: 10 };
+    var revealed = false, animFrame = null, bestSol = { f: 10 }, stage3d = null;
 
     var hud = createGameHUD(container, {
       maxStages: 3,
@@ -2746,6 +3021,7 @@
       } else {
         svgEl(svg, "text", { x: 410, y: 132, "text-anchor": "middle", class: "g-label" }).textContent = "Ek = ? eV  (กดยิงโฟตอนเพื่อทดลอง)";
       }
+      if (stage3d) stage3d.renderNow();
     }
 
     function pick() {
@@ -2797,6 +3073,7 @@
         ? "พลังงานโฟตอน hf = " + E.toFixed(2) + " eV ยังไม่ชนะ W₀ = " + W0 + " eV (อิเล็กตรอนไม่หลุด)"
         : "ได้พลังงานจลน์ Ek = " + Ek.toFixed(2) + " eV " + (diff < 0 ? "(น้อยไป " : "(มากไป ") + Math.abs(diff).toFixed(2) + " eV)";
       hud.recordAttempt(isHit, winTxt, missTxt);
+      if (stage3d) { stage3d.renderNow(); stage3d.pulse(); }
 
       if (reducedMotion()) {
         renderQuantum(1);
@@ -2813,6 +3090,24 @@
     });
 
     container.appendChild(svg);
+    if (window.LP3D) {
+      stage3d = window.LP3D.attach(container, svg, {
+        kind: "modern-quantum",
+        getState: function () {
+          var f = Number(fF.input.value);
+          var Ek = Math.max(0, hConst * f - W0);
+          return {
+            mode: "photoelectric",
+            W0: W0,
+            f: f,
+            Ek: Ek,
+            isGame: true,
+            revealed: revealed,
+            targetEk: hud.state.target
+          };
+        }
+      });
+    }
     container.appendChild(h("div", { class: "controls single" }, [fF.root]));
     container.appendChild(h("div", { class: "actions" }, [checkBtn, hud.nextBtn]));
     container.appendChild(hud.msg);

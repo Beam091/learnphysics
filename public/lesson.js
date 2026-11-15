@@ -261,12 +261,100 @@
       }
       var mark = h("p", { class: "mark-line" });
       marks[q.id] = mark;
+      var checkOneBtn = h("button", { type: "button", class: "secondary q-check-btn", text: "🔍 ตรวจคำตอบข้อนี้" });
+      checkOneBtn.addEventListener("click", function () {
+        var curAnswers = collect();
+        if (curAnswers[q.id] === undefined) {
+          mark.className = "mark-line bad";
+          mark.textContent = "กรุณาเลือกหรือกรอกคำตอบของข้อนี้ก่อนตรวจ";
+          return;
+        }
+        var single = {};
+        single[q.id] = curAnswers[q.id];
+        checkOneBtn.disabled = true;
+        fetch("/api/quizzes/" + quiz.id + "/check", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ answers: single }),
+        })
+          .then(function (res) {
+            if (res.status === 401) {
+              mark.className = "mark-line bad";
+              mark.textContent = "🔒 กรุณาเข้าสู่ระบบก่อนตรวจคำตอบ";
+              return null;
+            }
+            if (!res.ok) throw new Error("bad status");
+            return res.json();
+          })
+          .then(function (data) {
+            if (!data || !data.ok || !data.results) return;
+            var hit = data.results.filter(function (x) { return x.id === q.id; })[0];
+            if (!hit) return;
+            applyQuestionMark(hit);
+            if (window.LPSound) {
+              if (hit.correct && window.LPSound.tick) window.LPSound.tick();
+              else if (!hit.correct && window.LPSound.miss) window.LPSound.miss();
+            }
+          })
+          .catch(function () {
+            mark.className = "mark-line bad";
+            mark.textContent = "ตรวจคำตอบข้อนี้ไม่สำเร็จ กรุณาลองอีกครั้ง";
+          })
+          .then(function () {
+            checkOneBtn.disabled = false;
+          });
+      });
+      fs.appendChild(h("div", { class: "q-practice-row" }, [checkOneBtn]));
       fs.appendChild(mark);
       form.appendChild(fs);
     });
 
     form.appendChild(h("div", { class: "actions" }, [submit, retry]));
     form.appendChild(resultBox);
+
+    function applyQuestionMark(r) {
+      var fs = questionFieldsets[r.id];
+      var m = marks[r.id];
+      if (!m) return;
+      m.textContent = "";
+      m.className = "mark-line " + (r.correct ? "ok" : "bad");
+
+      var q = quiz.questions.filter(function (x) {
+        return x.id === r.id;
+      })[0];
+
+      if (fs) {
+        var allOpts = fs.querySelectorAll(".opt");
+        for (var i = 0; i < allOpts.length; i++) {
+          allOpts[i].classList.remove("is-correct", "is-wrong");
+        }
+
+        if (q && q.type === "choice") {
+          var correctInp = fs.querySelector('input[value="' + r.correctAnswer + '"]');
+          if (correctInp && correctInp.closest(".opt")) {
+            correctInp.closest(".opt").classList.add("is-correct");
+          }
+          if (!r.correct) {
+            var checkedInp = fs.querySelector('input[type="radio"]:checked');
+            if (checkedInp && checkedInp.closest(".opt")) {
+              checkedInp.closest(".opt").classList.add("is-wrong");
+            }
+          }
+        } else {
+          var numOpt = fs.querySelector(".opt.num");
+          if (numOpt) {
+            numOpt.classList.add(r.correct ? "is-correct" : "is-wrong");
+          }
+        }
+      }
+
+      m.appendChild(h("strong", { text: r.correct ? "✓ ถูกต้อง " : "✗ ยังไม่ถูก " }));
+      if (!r.correct) {
+        var shown = q && q.type === "choice" && q.choices ? q.choices[r.correctAnswer] : r.correctAnswer;
+        m.appendChild(document.createTextNode("เฉลย: " + shown + " "));
+      }
+      m.appendChild(document.createTextNode(r.explanation || ""));
+    }
 
     function collect() {
       var answers = {};
@@ -307,49 +395,7 @@
         resultBox.appendChild(nextActionBox);
       }
 
-      data.results.forEach(function (r) {
-        var fs = questionFieldsets[r.id];
-        var m = marks[r.id];
-        m.textContent = "";
-        m.className = "mark-line " + (r.correct ? "ok" : "bad");
-
-        var q = quiz.questions.filter(function (x) {
-          return x.id === r.id;
-        })[0];
-
-        // ไฮไลต์ตัวเลือกที่ถูกต้องและผิด
-        if (fs) {
-          var allOpts = fs.querySelectorAll(".opt");
-          for (var i = 0; i < allOpts.length; i++) {
-            allOpts[i].classList.remove("is-correct", "is-wrong");
-          }
-
-          if (q && q.type === "choice") {
-            var correctInp = fs.querySelector('input[value="' + r.correctAnswer + '"]');
-            if (correctInp && correctInp.closest(".opt")) {
-              correctInp.closest(".opt").classList.add("is-correct");
-            }
-            if (!r.correct) {
-              var checkedInp = fs.querySelector('input[type="radio"]:checked');
-              if (checkedInp && checkedInp.closest(".opt")) {
-                checkedInp.closest(".opt").classList.add("is-wrong");
-              }
-            }
-          } else {
-            var numOpt = fs.querySelector(".opt.num");
-            if (numOpt) {
-              numOpt.classList.add(r.correct ? "is-correct" : "is-wrong");
-            }
-          }
-        }
-
-        m.appendChild(h("strong", { text: r.correct ? "✓ ถูกต้อง " : "✗ ยังไม่ถูก " }));
-        if (!r.correct) {
-          var shown = q && q.type === "choice" && q.choices ? q.choices[r.correctAnswer] : r.correctAnswer;
-          m.appendChild(document.createTextNode("เฉลย: " + shown + " "));
-        }
-        m.appendChild(document.createTextNode(r.explanation || ""));
-      });
+      data.results.forEach(applyQuestionMark);
 
       retry.hidden = false;
       setProgress("quiz", data.percent);
@@ -609,6 +655,352 @@
     };
   }
 
+  // ------------------------------------------------ สรุปสูตร & ตัวอย่างวิธีทำ
+  var STUDY_GUIDES = {
+    projectile: {
+      title: "สูตรสำคัญและตัวอย่าง: การเคลื่อนที่แบบโพรเจกไทล์",
+      formulas: [
+        { eq: "R = (v₀² sin 2θ) / g", desc: "ระยะไกลสุดในแนวระดับ (เมตร)" },
+        { eq: "H = (v₀² sin² θ) / (2g)", desc: "ความสูงสูงสุดที่วัตถุขึ้นไปได้ (เมตร)" },
+        { eq: "T = (2 v₀ sin θ) / g", desc: "เวลาทั้งหมดในการลอยตัวในอากาศ (วินาที)" },
+      ],
+      example: {
+        problem: "ยิงลูกบอลด้วยความเร็วต้น v₀ = 20 ม./วิ ทำมุม θ = 30° กับแนวราบ (ใช้ g = 10 ม./วิ²)",
+        steps: [
+          "ขั้นที่ 1 แตกความเร็วต้น: vₓ = 20 cos 30° ≈ 17.32 ม./วิ และ vᵧ = 20 sin 30° = 10 ม./วิ",
+          "ขั้นที่ 2 หาเวลาทั้งหมด: T = 2vᵧ / g = (2 × 10) / 10 = 2.0 วินาที",
+          "ขั้นที่ 3 หาระยะไกลสุดและความสูงสูงสุด: R = vₓ × T ≈ 34.6 ม., H = vᵧ² / (2g) = 100 / 20 = 5.0 ม."
+        ],
+        answer: "คำตอบ: ใช้เวลา 2.0 วินาที สูงสุด 5.0 ม. และตกไกลประมาณ 34.6 ม."
+      }
+    },
+    coulomb: {
+      title: "สูตรสำคัญและตัวอย่าง: แรงระหว่างประจุไฟฟ้า (กฎของคูลอมบ์)",
+      formulas: [
+        { eq: "F = k |q₁ q₂| / r²", desc: "แรงดึงดูดหรือแรงผลักระหว่างประจุ (นิวตัน, k = 9×10⁹ N·m²/C²)" },
+        { eq: "E = k |q| / r²", desc: "ขนาดของสนามไฟฟ้า ณ ตำแหน่งห่าง r (N/C)" },
+      ],
+      example: {
+        problem: "ประจุ +2 μC และ +3 μC วางห่างกัน r = 0.3 เมตร จงหาแรงผลักระหว่างกัน",
+        steps: [
+          "ขั้นที่ 1 แปลงหน่วยประจุ: q₁ = 2 × 10⁻⁶ C, q₂ = 3 × 10⁻⁶ C",
+          "ขั้นที่ 2 แทนค่าใน F = k|q₁q₂|/r² = (9×10⁹)(2×10⁻⁶)(3×10⁻⁶) / (0.3)²",
+          "ขั้นที่ 3 คำนวณ: ตัวเศษ = 54×10⁻³ และ r² = 0.09 จะได้ F = 0.054 / 0.09"
+        ],
+        answer: "คำตอบ: เกิดแรงผลักขนาด F = 0.60 นิวตัน"
+      }
+    },
+    reflection: {
+      title: "สูตรสำคัญและตัวอย่าง: การสะท้อนของแสงบนกระจกเงา",
+      formulas: [
+        { eq: "θᵢ = θᵣ", desc: "มุมตกกระทบเท่ากับมุมสะท้อน (วัดเทียบกับเส้นปกติ)" },
+        { eq: "มุมเบี่ยงเบน δ = 180° − 2θᵢ", desc: "มุมที่รังสีสะท้อนเบี่ยงออกจากทิศเดิมของรังสีตกกระทบ" },
+      ],
+      example: {
+        problem: "รังสีแสงตกกระทบกระจกเงาราบทำมุมตกกระทบ 35° กับเส้นปกติ จงหามุมสะท้อนและมุมรวมระหว่างรังสี",
+        steps: [
+          "ขั้นที่ 1 จากกฎการสะท้อน มุมสะท้อน θᵣ เท่ากับมุมตกกระทบ θᵢ = 35°",
+          "ขั้นที่ 2 มุมระหว่างรังสีตกกระทบกับรังสีสะท้อน = θᵢ + θᵣ = 35° + 35°",
+          "ขั้นที่ 3 คำนวณมุมเทียบผิวกระจก = 90° − 35° = 55°"
+        ],
+        answer: "คำตอบ: มุมสะท้อน = 35° และมุมระหว่างสองรังสี = 70°"
+      }
+    },
+    "ohm-law": {
+      title: "สูตรสำคัญและตัวอย่าง: กฎของโอห์มและวงจรไฟฟ้ากระแสตรง",
+      formulas: [
+        { eq: "V = I R", desc: "ความต่างศักย์ V (โวลต์) เท่ากับ กระแส I (แอมแปร์) × ความต้านทาน R (โอห์ม)" },
+        { eq: "P = I V = I² R", desc: "กำลังไฟฟ้าที่ใช้ไปในตัวต้านทาน (วัตต์)" },
+      ],
+      example: {
+        problem: "ต่อแบตเตอรี่ 12 V เข้ากับตัวต้านทานอนุกรม 4 Ω และ 2 Ω จงหากระแส I และกำลังไฟฟ้า P",
+        steps: [
+          "ขั้นที่ 1 หาความต้านทานรวมอนุกรม: R_total = 4 + 2 = 6 Ω",
+          "ขั้นที่ 2 ใช้กฎของโอห์ม: I = V / R_total = 12 / 6 = 2.0 แอมแปร์",
+          "ขั้นที่ 3 หากำลังไฟฟ้าทั้งหมด: P = I × V = 2 × 12 = 24 วัตต์"
+        ],
+        answer: "คำตอบ: กระแสไฟฟ้าในวงจร I = 2.0 A และกำลังไฟฟ้า P = 24 W"
+      }
+    },
+    "snell-law": {
+      title: "สูตรสำคัญและตัวอย่าง: การหักเหของแสง (กฎของสเนลล์)",
+      formulas: [
+        { eq: "n₁ sin θ₁ = n₂ sin θ₂", desc: "ความสัมพันธ์ดัชนีหักเหและมุมเทียบเส้นปกติของตัวกลาง 1 และ 2" },
+        { eq: "sin θ_c = n₂ / n₁", desc: "มุมวิกฤตเมื่อแสงเดินทางจากตัวกลางหนาแน่นไปน้อยกว่า (n₁ > n₂)" },
+      ],
+      example: {
+        problem: "แสงเดินทางจากอากาศ (n₁ = 1.0) ด้วยมุม 30° เข้าสู่ตัวกลางใสที่มี n₂ = 1.5 จงหาค่า sin θ₂",
+        steps: [
+          "ขั้นที่ 1 ตั้งสมการกฎของสเนลล์: 1.0 × sin 30° = 1.5 × sin θ₂",
+          "ขั้นที่ 2 แทนค่า sin 30° = 0.5 จะได้ 0.5 = 1.5 × sin θ₂",
+          "ขั้นที่ 3 แก้สมการ: sin θ₂ = 0.5 / 1.5 = 1/3 ≈ 0.333 (θ₂ ≈ 19.5°)"
+        ],
+        answer: "คำตอบ: มุมหักเห θ₂ ≈ 19.5° (เบนเข้าหาเส้นปกติ)"
+      }
+    },
+    "harmonic-wave": {
+      title: "สูตรสำคัญและตัวอย่าง: สมบัติคลื่นกลและอัตราเร็วคลื่น",
+      formulas: [
+        { eq: "v = f λ", desc: "อัตราเร็วคลื่น (ม./วิ) = ความถี่ (Hz) × ความยาวคลื่น (ม.)" },
+        { eq: "T = 1 / f", desc: "คาบการสั่น (วินาที) เป็นส่วนกลับของความถี่ (Hz)" },
+      ],
+      example: {
+        problem: "คลื่นน้ำมีความถี่ f = 4 Hz และวัดระยะระหว่างสันคลื่นที่ติดกันได้ λ = 2.5 เมตร จงหาอัตราเร็วคลื่น",
+        steps: [
+          "ขั้นที่ 1 ระบุตัวแปร: ความถี่ f = 4 Hz และความยาวคลื่น λ = 2.5 ม.",
+          "ขั้นที่ 2 แทนค่าใน v = f λ = 4 × 2.5",
+          "ขั้นที่ 3 หาคาบคลื่นเพิ่มเติม: T = 1 / 4 = 0.25 วินาที"
+        ],
+        answer: "คำตอบ: อัตราเร็วคลื่น v = 10.0 ม./วิ และคาบ T = 0.25 วินาที"
+      }
+    },
+    "newton-force": {
+      title: "สูตรสำคัญและตัวอย่าง: กฎการเคลื่อนที่ของนิวตันและแรงเสียดทาน",
+      formulas: [
+        { eq: "ΣF = m a", desc: "แรงลัพธ์ที่กระทำต่อวัตถุ = มวล (กก.) × ความเร่ง (ม./วิ²)" },
+        { eq: "f = μ N = μ m g", desc: "แรงเสียดทานจลน์บนพื้นราบ (นิวตัน)" },
+      ],
+      example: {
+        problem: "ออกแรง 30 N ดึงกล่องมวล 5 กก. บนพื้นราบที่มีค่า μ = 0.2 (ใช้ g = 10 ม./วิ²) จงหาความเร่ง a",
+        steps: [
+          "ขั้นที่ 1 หาแรงเสียดทานจลน์: f = μmg = 0.2 × 5 × 10 = 10 นิวตัน",
+          "ขั้นที่ 2 หาแรงลัพธ์แนวระดับ: ΣF = F − f = 30 − 10 = 20 นิวตัน",
+          "ขั้นที่ 3 หาความเร่ง: a = ΣF / m = 20 / 5 = 4.0 ม./วิ²"
+        ],
+        answer: "คำตอบ: กล่องเคลื่อนที่ด้วยความเร่ง a = 4.0 ม./วิ²"
+      }
+    },
+    "linear-motion": {
+      title: "สูตรสำคัญและตัวอย่าง: การเคลื่อนที่แนวตรงด้วยความเร่งคงตัว",
+      formulas: [
+        { eq: "v = u + a t", desc: "ความเร็วปลาย (ม./วิ) จากความเร็วต้น ความเร่ง และเวลา" },
+        { eq: "s = u t + ½ a t²", desc: "การกระจัดในเวลา t (เมตร)" },
+        { eq: "v² = u² + 2 a s", desc: "สมการเชื่อมความเร็วและการกระจัดเมื่อไม่ทราบเวลา t" },
+      ],
+      example: {
+        problem: "รถทดลองออกวิ่งจากจุดหยุดนิ่ง (u = 0) ด้วยความเร่ง a = 3 ม./วิ² เป็นเวลา 4 วินาที จะได้ระยะทางเท่าไร",
+        steps: [
+          "ขั้นที่ 1 กำหนดค่า: u = 0 ม./วิ, a = 3 ม./วิ², t = 4 วิ",
+          "ขั้นที่ 2 แทนค่าใน s = ut + ½at² = 0 + 0.5 × 3 × (4)²",
+          "ขั้นที่ 3 คำนวณ: s = 1.5 × 16 = 24 เมตร (ความเร็วปลาย v = 3 × 4 = 12 ม./วิ)"
+        ],
+        answer: "คำตอบ: เคลื่อนที่ได้ระยะทาง s = 24 เมตร และความเร็วปลาย 12 ม./วิ"
+      }
+    },
+    "momentum-collision": {
+      title: "สูตรสำคัญและตัวอย่าง: โมเมนตัมและการชน",
+      formulas: [
+        { eq: "p = m v", desc: "โมเมนตัมของวัตถุ (กก.·ม./วิ)" },
+        { eq: "m₁u₁ + m₂u₂ = m₁v₁ + m₂v₂", desc: "กฎการอนุรักษ์โมเมนตัมรวมก่อนชน = หลังชน" },
+      ],
+      example: {
+        problem: "รถมวล 2 กก. วิ่งด้วยความเร็ว 6 ม./วิ พุ่งเข้าชนติดกันไปกับรถมวล 4 กก. ที่หยุดนิ่ง จงหาความเร็วหลังชน",
+        steps: [
+          "ขั้นที่ 1 โมเมนตัมรวมก่อนชน: P_ก่อน = (2 × 6) + (4 × 0) = 12 กก.·ม./วิ",
+          "ขั้นที่ 2 หลังชนติดกัน มวลรวม M = 2 + 4 = 6 กก. เคลื่อนที่ด้วยความเร็ว v",
+          "ขั้นที่ 3 ใช้กฎอนุรักษ์โมเมนตัม: 12 = 6 × v  =>  v = 12 / 6 = 2.0 ม./วิ"
+        ],
+        answer: "คำตอบ: รถทั้งสองเคลื่อนที่ติดกันไปด้วยความเร็ว v = 2.0 ม./วิ"
+      }
+    },
+    "circular-shm": {
+      title: "สูตรสำคัญและตัวอย่าง: การเคลื่อนที่แบบวงกลมและฮาร์มอนิกอย่างง่าย",
+      formulas: [
+        { eq: "F_c = m v² / r = m ω² r", desc: "แรงสู่ศูนย์กลางทิศพุ่งเข้าจุดศูนย์กลาง (นิวตัน)" },
+        { eq: "T = 2π √(m / k)", desc: "คาบการสั่นของมวลติดปลายสปริง (วินาที)" },
+      ],
+      example: {
+        problem: "แขวนมวล m = 1 กก. ติดสปริงค่า k = 100 นิวตัน/เมตร จงหาอัตราเร็วเชิงมุม ω และคาบ T",
+        steps: [
+          "ขั้นที่ 1 หาอัตราเร็วเชิงมุม: ω = √(k / m) = √(100 / 1) = 10 rad/s",
+          "ขั้นที่ 2 หาคาบการสั่น: T = 2π / ω = 2 × 3.14 / 10 ≈ 0.63 วินาที",
+          "ขั้นที่ 3 ความถี่การสั่น: f = 1 / T ≈ 1.59 Hz"
+        ],
+        answer: "คำตอบ: คาบการสั่น T ≈ 0.63 วินาที (ω = 10 rad/s)"
+      }
+    },
+    "fluid-pressure": {
+      title: "สูตรสำคัญและตัวอย่าง: ความดันของไหลและแรงพยุง (อาร์คิมิดิส)",
+      formulas: [
+        { eq: "P = P₀ + ρ g h", desc: "ความดันสัมบูรณ์ที่ลึก h (kPa) โดยความดันเกจ P_g = ρgh" },
+        { eq: "F_B = ρ_ของเหลว V_จม g", desc: "แรงพยุงของของไหล (นิวตัน)" },
+      ],
+      example: {
+        problem: "วัดความดันใต้น้ำบริสุทธิ์ (ρ = 1,000 กก./ม.³) ลึก h = 5 เมตร (g = 9.8, P₀ = 101.3 kPa)",
+        steps: [
+          "ขั้นที่ 1 หาความดันเกจ: P_g = ρgh = 1000 × 9.8 × 5 = 49,000 Pa = 49.0 kPa",
+          "ขั้นที่ 2 รวมความดันบรรยากาศ P₀ = 101.3 kPa",
+          "ขั้นที่ 3 ความดันสัมบูรณ์ P_รวม = 101.3 + 49.0 = 150.3 kPa"
+        ],
+        answer: "คำตอบ: ความดันเกจ = 49.0 kPa และความดันสัมบูรณ์ = 150.3 kPa"
+      }
+    },
+    "ideal-gas": {
+      title: "สูตรสำคัญและตัวอย่าง: กฎของแก๊สอุดมคติและพลังงานภายใน",
+      formulas: [
+        { eq: "P V = n R T", desc: "สมการแก๊สอุดมคติ (T ต้องเป็นเคลวิน K = °C + 273, R = 8.314)" },
+        { eq: "U = (3/2) n R T", desc: "พลังงานภายในแก๊สอะตอมเดี่ยว (จูล)" },
+      ],
+      example: {
+        problem: "แก๊สอุดมคติ n = 1 โมล อุณหภูมิ T = 300 K บรรจุในลูกสูบปริมาตร V = 5 ลิตร จงหาความดันแก๊ส",
+        steps: [
+          "ขั้นที่ 1 แปลงปริมาตรเป็น ลบ.ม.: V = 5 × 10⁻³ ม.³ (หรือใช้สูตรตรงได้หน่วย kPa เมื่อ V เป็นลิตร)",
+          "ขั้นที่ 2 คำนวณ P = (n R T) / V_ลิตร = (1 × 8.314 × 300) / 5",
+          "ขั้นที่ 3 ได้ P = 2494.2 / 5 = 498.8 kPa และพลังงานภายใน U = 1.5 × 2494.2 ≈ 3,741 J"
+        ],
+        answer: "คำตอบ: ความดันแก๊ส P ≈ 498.8 kPa และพลังงานภายใน ≈ 3,741 J"
+      }
+    },
+    "thin-lens": {
+      title: "สูตรสำคัญและตัวอย่าง: สมการเลนส์บางและกำลังขยาย",
+      formulas: [
+        { eq: "1/f = 1/s + 1/s'", desc: "เลนส์นูน f > 0, เลนส์เว้า f < 0; s' > 0 คือภาพจริง" },
+        { eq: "m = −s' / s = h' / h", desc: "กำลังขยายเชิงเส้นและทิศหัวตั้ง/หัวกลับ" },
+      ],
+      example: {
+        problem: "วางวัตถุห่างจากเลนส์นูน (f = 10 ซม.) เป็นระยะ s = 30 ซม. จงหาระยะภาพ s' และกำลังขยาย",
+        steps: [
+          "ขั้นที่ 1 แทนค่าในสมการ 1/10 = 1/30 + 1/s'",
+          "ขั้นที่ 2 ย้ายข้าง: 1/s' = 1/10 − 1/30 = (3 − 1)/30 = 2/30 = 1/15",
+          "ขั้นที่ 3 ได้ s' = +15 ซม. (ภาพจริง) และกำลังขยาย |m| = 15/30 = 0.5 เท่า (หัวกลับ)"
+        ],
+        answer: "คำตอบ: เกิดภาพจริงหัวกลับหลังเลนส์ที่ระยะ s' = 15 ซม. ขนาด 0.5 เท่า"
+      }
+    },
+    "magnetic-induction": {
+      title: "สูตรสำคัญและตัวอย่าง: แรงแม่เหล็กและการเหนี่ยวนำไฟฟ้า",
+      formulas: [
+        { eq: "F = q v B sin θ", desc: "แรงลอเรนตซ์กระทำต่อประจุวิ่งตัดสนามแม่เหล็ก B (นิวตัน)" },
+        { eq: "ε = B L v", desc: "แรงเคลื่อนไฟฟ้าเหนี่ยวนำบนลวดตัวนำยาว L เคลื่อนที่เร็ว v ตัดสนาม B (โวลต์)" },
+      ],
+      example: {
+        problem: "ลวดตัวนำยาว L = 0.5 ม. เคลื่อนที่ด้วยเร็ว v = 8 ม./วิ ตั้งฉากกับสนาม B = 1.2 T จงหา EMF",
+        steps: [
+          "ขั้นที่ 1 ระบุค่า: B = 1.2 T, L = 0.5 ม., v = 8 ม./วิ",
+          "ขั้นที่ 2 คำนวณแรงเคลื่อนไฟฟ้า: ε = B L v = 1.2 × 0.5 × 8",
+          "ขั้นที่ 3 ได้ ε = 4.8 โวลต์ (ถ้า R = 2 Ω จะเกิดกระแสเหนี่ยวนำ I = 4.8/2 = 2.4 A)"
+        ],
+        answer: "คำตอบ: แรงเคลื่อนไฟฟ้าเหนี่ยวนำ ε = 4.8 โวลต์"
+      }
+    },
+    photoelectric: {
+      title: "สูตรสำคัญและตัวอย่าง: ปรากฏการณ์โฟโตอิเล็กทริก",
+      formulas: [
+        { eq: "E = h f", desc: "พลังงานของโฟตอน 1 อนุภาค (h ≈ 4.136×10⁻¹⁵ eV·s)" },
+        { eq: "Ek_max = h f − W₀", desc: "พลังงานจลน์สูงสุดของอิเล็กตรอนที่หลุดออกจากผิวโลหะ (eV)" },
+      ],
+      example: {
+        problem: "ฉายแสงความถี่ f = 10 × 10¹⁴ Hz ลงบนโลหะที่มีฟังก์ชันงาน W₀ = 2.2 eV จงหา Ek_max",
+        steps: [
+          "ขั้นที่ 1 หาพลังงานโฟตอน: E = hf = 0.4136 × 10 = 4.14 eV",
+          "ขั้นที่ 2 เทียบกับฟังก์ชันงาน: 4.14 eV > 2.2 eV ดังนั้นอิเล็กตรอนหลุดได้",
+          "ขั้นที่ 3 คำนวณ Ek_max = 4.14 − 2.20 = 1.94 eV"
+        ],
+        answer: "คำตอบ: โฟโตอิเล็กตรอนหลุดออกด้วยพลังงานจลน์สูงสุด Ek_max ≈ 1.94 eV"
+      }
+    },
+    decay: {
+      title: "สูตรสำคัญและตัวอย่าง: กัมมันตภาพรังสีและครึ่งชีวิต",
+      formulas: [
+        { eq: "N(t) = N₀ (½)^(t / T½)", desc: "ปริมาณนิวเคลียสคงเหลือหลังผ่านไปเวลา t" },
+        { eq: "A = λ N", desc: "กัมมันตภาพ (อัตราการสลายตัวต่อวินาที, เบ็กเคอเรล Bq)" },
+      ],
+      example: {
+        problem: "ธาตุกัมมันตรังสีมีปริมาณเริ่มต้น N₀ = 1,000 มิลลิกรัม และครึ่งชีวิต T½ = 4 ปี เมื่อเวลาผ่านไป 12 ปีจะเหลือเท่าใด",
+        steps: [
+          "ขั้นที่ 1 หาจำนวนรอบครึ่งชีวิต: n = t / T½ = 12 / 4 = 3 รอบ",
+          "ขั้นที่ 2 ใช้สูตร: N = 1,000 × (½)³ = 1,000 / 8",
+          "ขั้นที่ 3 คำนวณ: เหลือสาร 125 มิลลิกรัม (สลายไปแล้ว 87.5%)"
+        ],
+        answer: "คำตอบ: เหลือสารกัมมันตรังสีคงค้าง 125 มิลลิกรัม (12.5%)"
+      }
+    },
+    relativity: {
+      title: "สูตรสำคัญและตัวอย่าง: สัมพัทธภาพพิเศษและพลังงานมวล",
+      formulas: [
+        { eq: "γ = 1 / √(1 − v²/c²)", desc: "แฟกเตอร์ลอเรนตซ์สำหรับวัตถุเร็วใกล้แสง (v < c)" },
+        { eq: "L = L₀ / γ , Δt = γ Δt₀", desc: "ความยาวหดสั้นและเวลาขยายออกเทียบกับผู้สังเกตอยู่นิ่ง" },
+      ],
+      example: {
+        problem: "ยานอวกาศความยาวปกติ L₀ = 100 ม. บินผ่านโลกด้วยความเร็ว v = 0.6c จงหา γ และความยาวที่คนบนโลกวัดได้",
+        steps: [
+          "ขั้นที่ 1 หา β² = (0.6)² = 0.36 ดังนั้น 1 − β² = 0.64",
+          "ขั้นที่ 2 คำนวณ γ = 1 / √0.64 = 1 / 0.8 = 1.25",
+          "ขั้นที่ 3 ความยาวหดสั้น L = L₀ / γ = 100 / 1.25 = 80 เมตร"
+        ],
+        answer: "คำตอบ: แฟกเตอร์ γ = 1.25 และผู้สังเกตบนโลกวัดความยาวได้ 80 เมตร"
+      }
+    }
+  };
+
+  function resolveStudyKey(lesson) {
+    if (lesson && lesson.animation && lesson.animation.engine) {
+      if (lesson.animation.engine === "modern-quantum") {
+        var mode = (lesson.animation.config && lesson.animation.config.mode) || "photoelectric";
+        return STUDY_GUIDES[mode] ? mode : "photoelectric";
+      }
+      if (STUDY_GUIDES[lesson.animation.engine]) return lesson.animation.engine;
+    }
+    var gMap = {
+      "aim-and-shoot": "projectile",
+      "match-circuit": "ohm-law",
+      "wave-tuner": "harmonic-wave",
+      "balance-force": "newton-force",
+      "lens-focus": "thin-lens",
+      "thermal-piston": "ideal-gas",
+      "quantum-lab": "photoelectric"
+    };
+    if (lesson && lesson.game && gMap[lesson.game.template]) return gMap[lesson.game.template];
+    return "projectile";
+  }
+
+  function buildStudySection(lesson) {
+    var guide = STUDY_GUIDES[resolveStudyKey(lesson)];
+    var formulaGrid = h("div", { class: "study-formula-grid" },
+      guide.formulas.map(function (f) {
+        return h("div", { class: "study-formula-item" }, [
+          h("code", { class: "study-eq", text: f.eq }),
+          h("span", { class: "study-desc", text: f.desc })
+        ]);
+      })
+    );
+
+    var stepsList = h("ol", { class: "study-steps" },
+      guide.example.steps.map(function (stTxt) {
+        return h("li", { text: stTxt });
+      })
+    );
+
+    var exBox = h("div", { class: "study-example-box" }, [
+      h("div", { class: "study-ex-head", text: "✏️ ตัวอย่างโจทย์และวิธีทำทีละขั้น" }),
+      h("p", { class: "study-ex-prob", text: guide.example.problem }),
+      stepsList,
+      h("p", { class: "study-ex-ans", text: guide.example.answer })
+    ]);
+
+    var head = h("h2", null, [
+      h("span", { class: "step-no study-badge", text: "📘" }),
+      document.createTextNode(guide.title)
+    ]);
+
+    return h("section", { class: "step lesson-study-card", id: "step-study" }, [head, formulaGrid, exBox]);
+  }
+
+  function buildStepNav() {
+    var items = [
+      { href: "#step-study", text: "📘 สูตร & ตัวอย่าง" },
+      { href: "#step-video", text: "🎬 วิดีโอสอน" },
+      { href: "#step-anim", text: "🔬 แล็บ 3 มิติ" },
+      { href: "#step-game", text: "🎮 เกม 3 มิติ" },
+      { href: "#step-quiz", text: "📝 แบบฝึกหัด" }
+    ];
+    return h("nav", { class: "lesson-step-nav", "aria-label": "แถบข้ามขั้นตอนในบทเรียน" },
+      items.map(function (it) {
+        return h("a", { class: "lesson-step-pill", href: it.href, text: it.text });
+      })
+    );
+  }
+
   // ------------------------------------------------------------------ หน้าหลัก
   function render(lesson) {
     currentLesson = lesson;
@@ -644,6 +1036,8 @@
       root.appendChild(summaryCard);
     }
 
+    root.appendChild(buildStepNav());
+    root.appendChild(buildStudySection(lesson));
     root.appendChild(videoStep(lesson));
     root.appendChild(animStep(lesson));
     root.appendChild(gameStep(lesson));

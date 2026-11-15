@@ -1956,3 +1956,265 @@ html[data-theme="dark"] .game-msg.warn {
     padding: 8px 10px;
   }
 }
+
+/* ============================================================
+   v4.0.0 Beta — 3D Viewport, Study Formulas/Examples & Practice UI
+   ============================================================ */
+.lp3d-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.lp3d-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--panel);
+  border: 1.5px solid var(--grid);
+  border-radius: 10px;
+}
+
+.lp3d-toolbar-group,
+.lp3d-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.lp3d-canvas-wrap[hidden],
+.lp3d-svg-fallback[hidden] {
+  display: none !important;
+}
+
+.lp3d-btn {
+  appearance: none;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 5px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--grid);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+
+.lp3d-btn:hover {
+  border-color: var(--path);
+}
+
+.lp3d-btn:active {
+  transform: translateY(1px);
+}
+
+.lp3d-btn.active {
+  background: var(--path);
+  color: #ffffff;
+  border-color: var(--path);
+}
+
+.lp3d-canvas-wrap {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1.5px solid var(--grid);
+  background: radial-gradient(circle at 50% 24%, color-mix(in srgb, var(--path) 9%, var(--panel)), var(--paper));
+}
+
+.lp3d-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  min-height: 210px;
+  max-height: 410px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.lp3d-canvas:active {
+  cursor: grabbing;
+}
+
+.lp3d-hint {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--panel) 84%, transparent);
+  border: 1px solid var(--grid);
+  pointer-events: none;
+  max-width: calc(100% - 20px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lp3d-stage.lp3d-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  margin: 0;
+  padding: 12px;
+  background: var(--paper);
+}
+
+.lp3d-stage.lp3d-fullscreen .lp3d-canvas-wrap {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+
+.lp3d-stage.lp3d-fullscreen .lp3d-canvas {
+  max-height: none;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+/* Lesson Step Navigation Pills */
+.lesson-step-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 18px;
+}
+
+.lesson-step-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--grid);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.lesson-step-pill:hover {
+  border-color: var(--path);
+  background: color-mix(in srgb, var(--path) 10%, var(--panel));
+}
+
+/* Study Guide Formulas & Worked Example Card */
+.lesson-study-card .study-badge {
+  background: color-mix(in srgb, var(--path) 16%, var(--panel));
+  color: var(--ink);
+}
+
+.study-formula-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.study-formula-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--grid);
+  background: var(--paper);
+}
+
+.study-eq {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--path);
+  word-break: break-word;
+}
+
+.study-desc {
+  font-size: 0.83rem;
+  color: var(--muted);
+}
+
+.study-example-box {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1.5px dashed var(--path);
+  background: color-mix(in srgb, var(--path) 6%, var(--panel));
+}
+
+.study-ex-head {
+  font-weight: 700;
+  font-size: 0.94rem;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+
+.study-ex-prob {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.study-steps {
+  margin: 0 0 8px;
+  padding-left: 20px;
+  font-size: 0.86rem;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.study-ex-ans {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ok) 14%, var(--panel));
+  color: var(--ok);
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+/* Per-question Practice Mode Row */
+.q-practice-row {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.q-check-btn {
+  padding: 5px 11px !important;
+  font-size: 0.82rem !important;
+}
+
+@media (max-width: 640px) {
+  .lp3d-toolbar {
+    padding: 5px 6px;
+    gap: 5px;
+  }
+  .lp3d-btn {
+    padding: 4px 7px;
+    font-size: 0.74rem;
+  }
+  .lp3d-canvas {
+    min-height: 195px;
+  }
+  .lesson-step-pill {
+    padding: 5px 10px;
+    font-size: 0.78rem;
+  }
+}
