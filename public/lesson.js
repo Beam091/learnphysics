@@ -972,10 +972,14 @@
     );
 
     var exBox = h("div", { class: "study-example-box" }, [
-      h("div", { class: "study-ex-head", text: "✏️ ตัวอย่างโจทย์และวิธีทำทีละขั้น" }),
       h("p", { class: "study-ex-prob", text: guide.example.problem }),
       stepsList,
       h("p", { class: "study-ex-ans", text: guide.example.answer })
+    ]);
+
+    var exDrawer = h("details", { class: "study-example-drawer" }, [
+      h("summary", { class: "study-example-summary", text: "✏️ ดูตัวอย่างโจทย์และวิธีทำทีละขั้น" }),
+      exBox
     ]);
 
     var head = h("h2", null, [
@@ -983,23 +987,53 @@
       document.createTextNode(guide.title)
     ]);
 
-    return h("section", { class: "step lesson-study-card", id: "step-study" }, [head, formulaGrid, exBox]);
+    return h("section", { class: "step lesson-study-card", id: "step-study" }, [head, formulaGrid, exDrawer]);
   }
 
-  function buildStepNav() {
-    var items = [
-      { href: "#step-study", text: "📘 สูตร & ตัวอย่าง" },
-      { href: "#step-video", text: "🎬 วิดีโอสอน" },
-      { href: "#step-anim", text: "🔬 แล็บ 3 มิติ" },
-      { href: "#step-game", text: "🎮 เกม 3 มิติ" },
-      { href: "#step-quiz", text: "📝 แบบฝึกหัด" }
-    ];
-    return h("nav", { class: "lesson-step-nav", "aria-label": "แถบข้ามขั้นตอนในบทเรียน" },
-      items.map(function (it) {
-        return h("a", { class: "lesson-step-pill", href: it.href, text: it.text });
-      })
-    );
+  var LESSON_TABS = [
+    { key: "study", text: "📖 สรุป & คลิป" },
+    { key: "lab", text: "🔬 แล็บ 3 มิติ" },
+    { key: "game", text: "🎮 เกม 3 มิติ" },
+    { key: "quiz", text: "📝 แบบฝึกหัด" },
+    { key: "all", text: "📄 ดูทั้งหมด", isAll: true }
+  ];
+
+  function resolveTabFromHash(hashStr) {
+    var raw = (hashStr || "").toLowerCase();
+    if (raw === "#step-anim" || raw === "#lab") return "lab";
+    if (raw === "#step-game" || raw === "#game") return "game";
+    if (raw === "#step-quiz" || raw === "#quiz") return "quiz";
+    if (raw === "#all") return "all";
+    if (raw === "#step-study" || raw === "#step-video" || raw === "#study" || raw === "#video") return "study";
+    return "study";
   }
+
+  function buildStepNav(onSelect) {
+    var nav = h("nav", {
+      class: "lesson-step-nav",
+      role: "tablist",
+      "aria-label": "แถบเลือกหมวดการเรียนรู้ในบทเรียน"
+    });
+    var pills = {};
+    LESSON_TABS.forEach(function (it) {
+      var btn = h("button", {
+        type: "button",
+        class: "lesson-step-pill" + (it.isAll ? " is-all" : ""),
+        role: "tab",
+        "data-tab": it.key,
+        "aria-selected": "false",
+        text: it.text
+      });
+      btn.addEventListener("click", function () {
+        if (onSelect) onSelect(it.key);
+      });
+      pills[it.key] = btn;
+      nav.appendChild(btn);
+    });
+    return { nav: nav, pills: pills };
+  }
+
+  var activeHashListener = null;
 
   // ------------------------------------------------------------------ หน้าหลัก
   function render(lesson) {
@@ -1027,25 +1061,92 @@
     passedBanner.style.display = "none";
     root.appendChild(passedBanner);
 
+    var currentTab = "study";
+    var stepNavCtrl = buildStepNav(function (tabKey) {
+      setActiveTab(tabKey);
+    });
+    root.appendChild(stepNavCtrl.nav);
+
     // การ์ดสรุปสาระสำคัญ (Key Takeaways Card)
+    var summaryCard = null;
     if (lesson.summary) {
-      var summaryCard = h("div", { class: "summary-card" }, [
+      summaryCard = h("div", { class: "summary-card" }, [
         h("h2", { class: "summary-card-title", text: "💡 สาระสำคัญประจำบทเรียน" }),
         h("p", { class: "summary-card-body", text: lesson.summary }),
       ]);
       root.appendChild(summaryCard);
     }
 
-    root.appendChild(buildStepNav());
-    root.appendChild(buildStudySection(lesson));
-    root.appendChild(videoStep(lesson));
-    root.appendChild(animStep(lesson));
-    root.appendChild(gameStep(lesson));
-    root.appendChild(quizStep(lesson));
+    var studySec = buildStudySection(lesson);
+    var videoSec = videoStep(lesson);
+    var animSec = animStep(lesson);
+    var gameSec = gameStep(lesson);
+    var quizSec = quizStep(lesson);
+    var notesBoxCtrl = createNotesBox();
+    var notesEl = notesBoxCtrl.element;
+
+    root.appendChild(studySec);
+    root.appendChild(videoSec);
+    root.appendChild(animSec);
+    root.appendChild(gameSec);
+    root.appendChild(quizSec);
 
     // กล่องโน้ตย่อส่วนตัว วางไว้ก่อนปุ่มนำทางบทก่อนหน้า/ถัดไป
-    var notesBoxCtrl = createNotesBox();
-    root.appendChild(notesBoxCtrl.element);
+    root.appendChild(notesEl);
+
+    function toggleHidden(node, hidden) {
+      if (!node) return;
+      node.classList.toggle("lesson-tab-hidden", !!hidden);
+    }
+
+    function notify3DResize() {
+      try {
+        window.dispatchEvent(new Event("resize"));
+        document.dispatchEvent(new CustomEvent("lp:tab-changed", { detail: { tab: currentTab } }));
+      } catch (e) {}
+    }
+
+    function setActiveTab(tabKey) {
+      if (!stepNavCtrl.pills[tabKey]) tabKey = "study";
+      currentTab = tabKey;
+
+      Object.keys(stepNavCtrl.pills).forEach(function (k) {
+        var isActive = k === tabKey;
+        var pill = stepNavCtrl.pills[k];
+        pill.classList.toggle("is-active", isActive);
+        pill.setAttribute("aria-selected", isActive ? "true" : "false");
+      });
+
+      var isAll = tabKey === "all";
+      var showStudy = isAll || tabKey === "study";
+      var showLab = isAll || tabKey === "lab";
+      var showGame = isAll || tabKey === "game";
+      var showQuiz = isAll || tabKey === "quiz";
+
+      toggleHidden(summaryCard, !showStudy);
+      toggleHidden(studySec, !showStudy);
+      toggleHidden(videoSec, !showStudy);
+      toggleHidden(animSec, !showLab);
+      toggleHidden(gameSec, !showGame);
+      toggleHidden(quizSec, !showQuiz);
+      toggleHidden(notesEl, !showQuiz);
+
+      if (showLab || showGame) {
+        notify3DResize();
+        if (typeof requestAnimationFrame === "function") {
+          requestAnimationFrame(notify3DResize);
+        }
+      }
+    }
+
+    if (activeHashListener) {
+      window.removeEventListener("hashchange", activeHashListener);
+    }
+    activeHashListener = function () {
+      setActiveTab(resolveTabFromHash(location.hash));
+    };
+    window.addEventListener("hashchange", activeHashListener);
+    setActiveTab(resolveTabFromHash(location.hash));
 
     // แถบปุ่มนำทาง บทก่อนหน้า / บทถัดไป อยู่ล่างสุดของหน้าบทเรียน
     var navContainer = h("div", { class: "lesson-nav-wrap" });

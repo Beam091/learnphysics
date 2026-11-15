@@ -55,10 +55,12 @@ html[data-theme="light"] {
 
 * { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; max-width: 100%; overflow-x: clip; }
 
 body {
   margin: 0;
+  max-width: 100%;
+  overflow-x: clip;
   font-family: "Sarabun", "Noto Sans Thai", system-ui, sans-serif;
   font-size: 1.0625rem;
   line-height: 1.7;
@@ -200,6 +202,11 @@ html[data-theme="light"] .site-header { background: rgba(238, 243, 247, 0.85); }
   padding-bottom: 44px;
 }
 
+.hero > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
 @media (min-width: 860px) {
   .hero {
     grid-template-columns: 1fr 1.15fr;
@@ -269,6 +276,8 @@ h1 {
   border: 2px solid var(--ink);
   padding: 16px;
   box-shadow: 3px 3px 0 var(--ink);
+  min-width: 0;
+  max-width: 100%;
 }
 
 @media (max-width: 560px) {
@@ -335,21 +344,6 @@ button:hover { background: var(--path); border-color: var(--path); color: #fff; 
   font-family: "Prompt", "Sarabun", system-ui, sans-serif;
   font-weight: 600;
   font-size: 1.1rem;
-}
-
-@media (max-width: 560px) {
-  .results, .results.two {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-  .results div {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding: 6px 12px;
-    background: var(--paper);
-    border: 1px solid var(--grid);
-  }
 }
 
 .note { margin: 10px 0 0; font-size: 0.9rem; color: var(--muted); }
@@ -943,7 +937,8 @@ html[data-theme="dark"] .badge-bm {
 }
 
 /* หน้าบทเรียน */
-.lesson { padding-top: 24px; padding-bottom: 64px; }
+.lesson { padding-top: 24px; padding-bottom: 64px; min-width: 0; max-width: 100%; }
+.lesson > .step { min-width: 0; max-width: 100%; }
 .lesson h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); margin: 8px 0 8px; max-width: 24em; }
 .crumbs { font-size: 0.95rem; color: var(--muted); }
 .crumbs a { font-weight: 600; text-decoration: none; }
@@ -1958,33 +1953,29 @@ html[data-theme="dark"] .game-msg.warn {
 }
 
 /* ============================================================
-   v4.0.0 Beta — 3D Viewport, Study Formulas/Examples & Practice UI
+   v5.0.0 Beta — Studio 3D Viewport, 4-Tab View Switcher & Compact Mobile UI
    ============================================================ */
 .lp3d-stage {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-bottom: 14px;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
 }
 
-.lp3d-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 6px 8px;
-  background: var(--panel);
-  border: 1.5px solid var(--grid);
-  border-radius: 10px;
-}
-
-.lp3d-toolbar-group,
-.lp3d-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
+.lp3d-canvas-wrap {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1.5px solid color-mix(in srgb, var(--path) 18%, var(--grid));
+  background: linear-gradient(180deg, #dff0ff 0%, #f4f9ff 58%, #ffffff 100%);
+  box-shadow: 0 6px 22px rgba(15, 23, 42, 0.08);
 }
 
 .lp3d-canvas-wrap[hidden],
@@ -1992,23 +1983,81 @@ html[data-theme="dark"] .game-msg.warn {
   display: none !important;
 }
 
+.lp3d-toolbar {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 4;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.lp3d-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.lp3d-toolbar.lp3d-toolbar-2d {
+  position: static;
+  background: var(--panel);
+  border: 1.5px solid var(--grid);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.lp3d-toolbar-group,
+.lp3d-group {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
 .lp3d-btn {
   appearance: none;
   font-family: inherit;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
-  line-height: 1.2;
-  padding: 5px 9px;
+  line-height: 1.15;
+  min-height: 28px;
+  height: 28px;
+  padding: 4px 9px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   border-radius: 7px;
-  border: 1px solid var(--grid);
-  background: var(--paper);
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: rgba(255, 255, 255, 0.88);
   color: var(--ink);
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.1s ease;
 }
 
 .lp3d-btn:hover {
   border-color: var(--path);
+  background: #ffffff;
+  color: var(--ink);
 }
 
 .lp3d-btn:active {
@@ -2021,24 +2070,21 @@ html[data-theme="dark"] .game-msg.warn {
   border-color: var(--path);
 }
 
-.lp3d-canvas-wrap {
-  position: relative;
-  width: 100%;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1.5px solid var(--grid);
-  background: radial-gradient(circle at 50% 24%, color-mix(in srgb, var(--path) 9%, var(--panel)), var(--paper));
+.lp3d-btn.active:hover {
+  background: var(--path);
+  color: #ffffff;
+  border-color: var(--path);
 }
 
 .lp3d-canvas {
   display: block;
   width: 100%;
-  height: auto;
-  aspect-ratio: 16 / 9;
-  min-height: 210px;
-  max-height: 410px;
+  max-width: 100%;
+  height: 360px;
   cursor: grab;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .lp3d-canvas:active {
@@ -2049,18 +2095,28 @@ html[data-theme="dark"] .game-msg.warn {
   position: absolute;
   left: 10px;
   bottom: 8px;
-  padding: 3px 8px;
+  z-index: 3;
+  padding: 3px 9px;
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 500;
-  color: var(--muted);
-  background: color-mix(in srgb, var(--panel) 84%, transparent);
-  border: 1px solid var(--grid);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(15, 23, 42, 0.1);
   pointer-events: none;
   max-width: calc(100% - 20px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  opacity: 1;
+  transition: opacity 0.32s ease;
+}
+
+.lp3d-hint.is-faded {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .lp3d-stage.lp3d-fullscreen {
@@ -2070,49 +2126,167 @@ html[data-theme="dark"] .game-msg.warn {
   margin: 0;
   padding: 12px;
   background: var(--paper);
+  display: flex;
+  flex-direction: column;
 }
 
 .lp3d-stage.lp3d-fullscreen .lp3d-canvas-wrap {
   flex: 1 1 auto;
   display: flex;
+  flex-direction: column;
   min-height: 0;
+  height: 100%;
 }
 
 .lp3d-stage.lp3d-fullscreen .lp3d-canvas {
-  max-height: none;
+  flex: 1 1 auto;
   height: 100%;
-  aspect-ratio: auto;
+  max-height: none;
+  min-height: 0;
 }
 
-/* Lesson Step Navigation Pills */
+html[data-theme="dark"] .lp3d-canvas-wrap,
+html.dark .lp3d-canvas-wrap {
+  background: linear-gradient(180deg, #0b1628 0%, #101e34 58%, #162238 100%);
+  border-color: rgba(148, 163, 184, 0.25);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.38);
+}
+
+html[data-theme="dark"] .lp3d-toolbar:not(.lp3d-toolbar-2d),
+html.dark .lp3d-toolbar:not(.lp3d-toolbar-2d) {
+  background: rgba(15, 23, 42, 0.78);
+  border-color: rgba(148, 163, 184, 0.24);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme="dark"] .lp3d-btn:not(.active),
+html.dark .lp3d-btn:not(.active) {
+  background: rgba(30, 41, 59, 0.88);
+  color: #f1f5f9;
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+html[data-theme="dark"] .lp3d-btn:not(.active):hover,
+html.dark .lp3d-btn:not(.active):hover {
+  background: rgba(51, 65, 85, 0.95);
+  color: #ffffff;
+  border-color: var(--path);
+}
+
+html[data-theme="dark"] .lp3d-hint,
+html.dark .lp3d-hint {
+  background: rgba(15, 23, 42, 0.78);
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.24);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .lp3d-canvas-wrap {
+    background: linear-gradient(180deg, #0b1628 0%, #101e34 58%, #162238 100%);
+    border-color: rgba(148, 163, 184, 0.25);
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.38);
+  }
+  :root:not([data-theme="light"]) .lp3d-toolbar:not(.lp3d-toolbar-2d) {
+    background: rgba(15, 23, 42, 0.78);
+    border-color: rgba(148, 163, 184, 0.24);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+  :root:not([data-theme="light"]) .lp3d-btn:not(.active) {
+    background: rgba(30, 41, 59, 0.88);
+    color: #f1f5f9;
+    border-color: rgba(148, 163, 184, 0.28);
+  }
+  :root:not([data-theme="light"]) .lp3d-btn:not(.active):hover {
+    background: rgba(51, 65, 85, 0.95);
+    color: #ffffff;
+    border-color: var(--path);
+  }
+  :root:not([data-theme="light"]) .lp3d-hint {
+    background: rgba(15, 23, 42, 0.78);
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.24);
+  }
+}
+
+/* Lesson 4-Tab View Switcher */
+.lesson-tab-hidden {
+  display: none !important;
+}
+
 .lesson-step-nav {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin: 14px 0 18px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .lesson-step-pill {
+  appearance: none;
+  font-family: inherit;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 12px;
+  min-height: 36px;
+  padding: 6px 13px;
   border-radius: 999px;
   border: 1.5px solid var(--grid);
   background: var(--panel);
   color: var(--ink);
   font-size: 0.84rem;
   font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  cursor: pointer;
   text-decoration: none;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .lesson-step-pill:hover {
   border-color: var(--path);
   background: color-mix(in srgb, var(--path) 10%, var(--panel));
+  color: var(--ink);
 }
 
-/* Study Guide Formulas & Worked Example Card */
+.lesson-step-pill.is-active {
+  background: var(--path);
+  color: #ffffff;
+  border-color: var(--path);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--path) 30%, transparent);
+}
+
+.lesson-step-pill.is-active:hover {
+  background: var(--path);
+  color: #ffffff;
+  border-color: var(--path);
+}
+
+.lesson-step-pill.is-all {
+  margin-left: auto;
+  background: transparent;
+  border-style: dashed;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.lesson-step-pill.is-all:hover {
+  color: var(--ink);
+  border-color: var(--path);
+  background: color-mix(in srgb, var(--path) 8%, var(--panel));
+}
+
+.lesson-step-pill.is-all.is-active {
+  border-style: solid;
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+  box-shadow: none;
+}
+
+/* Study Guide Formulas & Collapsible Worked Example Drawer */
 .lesson-study-card .study-badge {
   background: color-mix(in srgb, var(--path) 16%, var(--panel));
   color: var(--ink);
@@ -2120,7 +2294,7 @@ html[data-theme="dark"] .game-msg.warn {
 
 .study-formula-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
   gap: 10px;
   margin-bottom: 14px;
 }
@@ -2133,6 +2307,7 @@ html[data-theme="dark"] .game-msg.warn {
   border-radius: 10px;
   border: 1px solid var(--grid);
   background: var(--paper);
+  min-width: 0;
 }
 
 .study-eq {
@@ -2147,11 +2322,89 @@ html[data-theme="dark"] .game-msg.warn {
   color: var(--muted);
 }
 
+.study-example-drawer {
+  border-radius: 12px;
+  border: 1.5px solid var(--grid);
+  background: var(--paper);
+  overflow: hidden;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.study-example-drawer[open] {
+  border-color: color-mix(in srgb, var(--path) 55%, var(--grid));
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+}
+
+.study-example-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 14px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--path) 8%, var(--panel));
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.study-example-summary::-webkit-details-marker {
+  display: none;
+}
+
+.study-example-summary::after {
+  content: "▾";
+  font-size: 0.9rem;
+  color: var(--muted);
+  transition: transform 0.2s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.study-example-drawer[open] > .study-example-summary::after {
+  transform: rotate(180deg);
+  color: var(--path);
+}
+
+.study-example-summary:hover {
+  background: color-mix(in srgb, var(--path) 14%, var(--panel));
+}
+
 .study-example-box {
   padding: 12px 14px;
   border-radius: 10px;
   border: 1.5px dashed var(--path);
   background: color-mix(in srgb, var(--path) 6%, var(--panel));
+}
+
+.study-example-drawer .study-example-box {
+  border: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--path) 40%, var(--grid));
+  border-radius: 0;
+  background: color-mix(in srgb, var(--path) 5%, var(--panel));
+}
+
+html[data-theme="dark"] .study-example-drawer,
+html.dark .study-example-drawer {
+  background: var(--panel);
+  border-color: var(--grid);
+}
+
+html[data-theme="dark"] .study-example-drawer[open],
+html.dark .study-example-drawer[open] {
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.34);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .study-example-drawer {
+    background: var(--panel);
+    border-color: var(--grid);
+  }
+  :root:not([data-theme="light"]) .study-example-drawer[open] {
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.34);
+  }
 }
 
 .study-ex-head {
@@ -2203,18 +2456,83 @@ html[data-theme="dark"] .game-msg.warn {
 
 @media (max-width: 640px) {
   .lp3d-toolbar {
-    padding: 5px 6px;
-    gap: 5px;
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    padding: 3px 5px;
+    gap: 4px;
   }
   .lp3d-btn {
-    padding: 4px 7px;
-    font-size: 0.74rem;
+    min-height: 26px;
+    height: 26px;
+    padding: 3px 7px;
+    font-size: 0.72rem;
   }
   .lp3d-canvas {
-    min-height: 195px;
+    height: 300px;
+  }
+  .lp3d-hint {
+    left: 8px;
+    bottom: 6px;
+    font-size: 0.68rem;
+    padding: 2px 7px;
+  }
+  .lesson-step-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    margin: 10px 0 14px;
+    padding-bottom: 2px;
+  }
+  .lesson-step-nav::-webkit-scrollbar {
+    display: none;
   }
   .lesson-step-pill {
+    min-height: 34px;
     padding: 5px 10px;
     font-size: 0.78rem;
+  }
+  .lesson-step-pill.is-all {
+    margin-left: 0;
+  }
+  dl.results {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 8px;
+    margin-top: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--grid);
+    background: color-mix(in srgb, var(--path) 4%, var(--paper));
+  }
+  dl.results.two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  dl.results:has(> div:only-child) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  dl.results > div {
+    min-width: 0;
+    padding: 4px 5px;
+    border-radius: 7px;
+    background: var(--panel);
+    border: 1px solid color-mix(in srgb, var(--grid) 70%, transparent);
+    text-align: center;
+  }
+  dl.results dt {
+    font-size: 0.69rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  dl.results dd {
+    margin-top: 2px;
+    font-size: 0.85rem;
+    line-height: 1.2;
+    word-break: break-word;
   }
 }
