@@ -702,12 +702,12 @@
   function drawCircuit(svg, V, R, gameOpts) {
     var I = V / R;
     clear(svg);
-    var x1 = 120, x2 = 560, y1 = 50, y2 = 210;
-    svgEl(svg, "polyline", { points: x1 + "," + (y2 - 40) + " " + x1 + "," + y2 + " " + x2 + "," + y2 + " " + x2 + "," + y1 + " " + x1 + "," + y1 + " " + x1 + "," + (y1 + 40), class: "g-axis", fill: "none" });
+    var x1 = 120, x2 = 560, y1 = 50, y2 = 210, midY = (y1 + y2) / 2;
+    svgEl(svg, "polyline", { points: x1 + "," + (midY + 8) + " " + x1 + "," + y2 + " " + x2 + "," + y2 + " " + x2 + "," + y1 + " " + x1 + "," + y1 + " " + x1 + "," + (midY - 8), class: "g-axis", fill: "none" });
     // แบตเตอรี่ (ซ้าย)
-    svgEl(svg, "line", { x1: x1 - 22, y1: (y1 + y2) / 2 - 8, x2: x1 + 22, y2: (y1 + y2) / 2 - 8, class: "g-axis", "stroke-width": 4 });
-    svgEl(svg, "line", { x1: x1 - 12, y1: (y1 + y2) / 2 + 8, x2: x1 + 12, y2: (y1 + y2) / 2 + 8, class: "g-axis", "stroke-width": 4 });
-    svgEl(svg, "text", { x: x1 - 30, y: (y1 + y2) / 2 + 5, "text-anchor": "end", class: "g-label" }).textContent = "V = " + V + " โวลต์";
+    svgEl(svg, "line", { x1: x1 - 22, y1: midY - 8, x2: x1 + 22, y2: midY - 8, class: "g-axis", "stroke-width": 4 });
+    svgEl(svg, "line", { x1: x1 - 12, y1: midY + 8, x2: x1 + 12, y2: midY + 8, class: "g-axis", "stroke-width": 4 });
+    svgEl(svg, "text", { x: x1 - 30, y: midY + 5, "text-anchor": "end", class: "g-label" }).textContent = "V = " + V + " โวลต์";
     // ตัวต้านทาน (บน)
     var rw = 40 + R * 4;
     svgEl(svg, "rect", { x: (x1 + x2) / 2 - rw / 2, y: y1 - 14, width: rw, height: 28, class: "target", "fill-opacity": 0.8 });
@@ -716,24 +716,31 @@
     var isGamePreview = gameOpts && !gameOpts.revealed;
     if (isGamePreview) {
       // แอมมิเตอร์โหมดเตรียมพร้อม: ซ่อนค่ากระแสจริงจนกว่าจะกดปล่อยกระแส
-      svgEl(svg, "circle", { cx: x2, cy: (y1 + y2) / 2, r: 22, fill: "var(--panel)", stroke: "var(--ink)", "stroke-width": 2.5 });
-      svgEl(svg, "text", { x: x2, y: (y1 + y2) / 2 + 5, "text-anchor": "middle", class: "g-label", "font-size": "14px" }).textContent = "A: ?";
+      svgEl(svg, "circle", { cx: x2, cy: midY, r: 22, fill: "var(--panel)", stroke: "var(--ink)", "stroke-width": 2.5 });
+      svgEl(svg, "text", { x: x2, y: midY + 5, "text-anchor": "middle", class: "g-label", "font-size": "14px" }).textContent = "A: ?";
       svgEl(svg, "text", { x: (x1 + x2) / 2, y: y2 + 30, "text-anchor": "middle", class: "g-label" }).textContent = "กระแสไฟฟ้า I = ? แอมแปร์  (กดปล่อยกระแสเพื่อตรวจวัด)";
       return;
     }
 
-    // จุดกระแส: จำนวนและความเร็วตามค่า I
+    // จุดกระแส: จำนวนและความเร็วตามค่า I (cx=0, cy=0 เพื่อให้พิกัด animateMotion ทับเส้นลวดพอดี)
     var n = Math.max(2, Math.min(14, Math.round(I * 2)));
-    var perim = (x2 - x1) * 2 + (y2 - y1) * 2;
+    var w = x2 - x1, h = y2 - y1;
+    var perim = (w + h) * 2;
     var dur = Math.max(0.5, 6 / (1 + I));
     var path = "M " + x1 + " " + y1 + " L " + x2 + " " + y1 + " L " + x2 + " " + y2 + " L " + x1 + " " + y2 + " Z";
     for (var i = 0; i < n; i++) {
-      var dot = svgEl(svg, "circle", { r: 5, class: "ball", cx: x1, cy: y1 });
       if (!reducedMotion()) {
+        var dot = svgEl(svg, "circle", { r: 5, class: "ball", cx: 0, cy: 0 });
         var am = svgEl(dot, "animateMotion", { dur: dur + "s", repeatCount: "indefinite", begin: (-(dur * i) / n) + "s", path: path });
         am.setAttribute("rotate", "0");
       } else {
-        dot.setAttribute("cx", x1 + (perim * i) / n % (x2 - x1));
+        var dist = ((perim * i) / n) % perim;
+        var dx = x1, dy = y1;
+        if (dist < w) { dx = x1 + dist; dy = y1; }
+        else if (dist < w + h) { dx = x2; dy = y1 + (dist - w); }
+        else if (dist < 2 * w + h) { dx = x2 - (dist - w - h); dy = y2; }
+        else { dx = x1; dy = y2 - (dist - 2 * w - h); }
+        svgEl(svg, "circle", { r: 5, class: "ball", cx: dx, cy: dy });
       }
     }
 

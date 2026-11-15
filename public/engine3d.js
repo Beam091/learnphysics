@@ -3329,9 +3329,10 @@
     var resetBtn = h("button", { type: "button", class: "lp3d-btn", text: "🔄 รีเซ็ต" });
     var fsBtn = h("button", { type: "button", class: "lp3d-btn lp3d-fs-btn", text: "⛶ เต็มจอ" });
 
+    var camGroup = h("div", { class: "lp3d-group lp3d-cam-group" }, [freeBtn, frontBtn, topBtn, zoomInBtn, zoomOutBtn, resetBtn]);
     var toolbar = h("div", { class: "lp3d-toolbar" }, [
       h("div", { class: "lp3d-group" }, [mode3Btn, mode2Btn]),
-      h("div", { class: "lp3d-group" }, [freeBtn, frontBtn, topBtn, zoomInBtn, zoomOutBtn, resetBtn]),
+      camGroup,
       h("div", { class: "lp3d-group" }, [fsBtn]),
     ]);
 
@@ -3368,6 +3369,8 @@
     function syncModeUI() {
       mode3Btn.classList.toggle("active", is3D);
       mode2Btn.classList.toggle("active", !is3D);
+      camGroup.style.display = is3D ? "" : "none";
+      toolbar.scrollLeft = 0;
       if (is3D) {
         if (toolbar.parentNode !== canvasWrap) {
           canvasWrap.insertBefore(toolbar, canvas);
