@@ -99,7 +99,7 @@ html[data-theme="light"] .site-header { background: rgba(238, 243, 247, 0.85); }
 
 .site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .site-header nav { display: flex; align-items: center; gap: 12px; }
-.site-header nav a:not(.auth-login):not(.auth-link) {
+.site-header nav a:not(.auth-login):not(.auth-link):not(.auth-level-badge) {
   font-weight: 600;
   padding: 6px 8px;
   line-height: 1.4;
@@ -109,7 +109,7 @@ html[data-theme="light"] .site-header { background: rgba(238, 243, 247, 0.85); }
   text-decoration: none;
   white-space: nowrap;
 }
-.site-header nav a:not(.auth-login):not(.auth-link):hover { color: var(--path); }
+.site-header nav a:not(.auth-login):not(.auth-link):not(.auth-level-badge):hover { color: var(--path); }
 
 .brand {
   display: inline-flex;
@@ -165,7 +165,7 @@ html[data-theme="light"] .site-header { background: rgba(238, 243, 247, 0.85); }
   .brand { font-size: 1.1rem; gap: 6px; }
   .brand svg { width: 24px; height: 24px; }
   .site-header nav { gap: 8px; }
-  .site-header nav a:not(.auth-login):not(.auth-link) { font-size: 0.88rem; padding: 4px 4px; min-height: 36px; }
+  .site-header nav a:not(.auth-login):not(.auth-link):not(.auth-level-badge) { font-size: 0.88rem; padding: 4px 4px; min-height: 36px; }
   .theme-toggle {
     width: 38px;
     height: 38px;
@@ -183,7 +183,7 @@ html[data-theme="light"] .site-header { background: rgba(238, 243, 247, 0.85); }
   .brand svg { width: 20px; height: 20px; }
   .beta-badge { font-size: 0.62rem; padding: 1px 4px; }
   .site-header nav { gap: 5px; }
-  .site-header nav a:not(.auth-login):not(.auth-link) { font-size: 0.82rem; padding: 4px 2px; }
+  .site-header nav a:not(.auth-login):not(.auth-link):not(.auth-level-badge) { font-size: 0.82rem; padding: 4px 2px; }
   .theme-toggle { width: 34px; height: 34px; min-height: 34px; font-size: 1rem; }
 }
 
@@ -1532,3 +1532,427 @@ a.auth-login:hover, .auth-logout:hover, .auth-link:hover { background: var(--mar
 .account-box { border: 2px solid var(--ink); border-radius: 10px; padding: 16px; background: var(--panel); }
 button.danger { font: inherit; font-weight: 600; cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid var(--bad); background: var(--bad); color: #fff; }
 button.danger:disabled { opacity: 0.6; cursor: wait; }
+
+/* ------------------------------------------- ระบบเกมและ Gamification (v3.5.0 Beta) */
+.game-hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+
+.hud-left, .hud-stats, .hud-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hud-stage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Prompt", sans-serif;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.stage-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stage-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  background: var(--panel);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.stage-dot.active {
+  background: var(--mark);
+  transform: scale(1.15);
+}
+
+.stage-dot.done {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+
+.hud-stars {
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+  background: var(--panel);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.hud-score, .hud-combo {
+  font-family: "Prompt", sans-serif;
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--panel);
+  border: 1.5px solid var(--grid);
+}
+
+.hud-combo.hot {
+  background: rgba(249, 115, 22, 0.16);
+  border-color: #f97316;
+  color: #c2410c;
+}
+html[data-theme="dark"] .hud-combo.hot {
+  color: #fdba74;
+}
+
+.hud-btn {
+  font-family: "Prompt", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  min-height: 34px;
+  padding: 4px 10px;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.hud-btn:hover {
+  background: var(--mark);
+  color: #14213d;
+  border-color: var(--ink);
+}
+
+.game-mission-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: rgba(47, 91, 234, 0.08);
+  border: 2px solid var(--path);
+  border-radius: 8px;
+}
+
+.mission-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-family: "Prompt", sans-serif;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--path);
+  color: #fff;
+}
+
+.game-mission-card .game-info {
+  margin: 2px 0 0;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.game-hint-box {
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: rgba(255, 216, 77, 0.22);
+  border: 2px dashed #ca8a04;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+html[data-theme="dark"] .game-hint-box {
+  background: rgba(255, 216, 77, 0.12);
+  border-color: var(--mark);
+}
+
+.hint-formula {
+  font-family: "Prompt", sans-serif;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.game-msg.warn {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1.5px solid #d97706;
+  padding: 10px 14px;
+  border-radius: 6px;
+}
+html[data-theme="dark"] .game-msg.warn {
+  color: #fcd34d;
+  border-color: #f59e0b;
+}
+
+.actions button.cta-main {
+  font-weight: 700;
+}
+
+/* Header Level Badge */
+.site-header nav a.auth-level-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  min-height: 30px;
+  background: var(--mark);
+  color: #14213d;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  font-family: "Prompt", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.site-header nav a.auth-level-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+@media (max-width: 520px) {
+  .site-header nav a.auth-level-badge {
+    display: none;
+  }
+}
+
+/* /courses Gamification Dashboard */
+#gamifyDashboard {
+  scroll-margin-top: 84px;
+}
+
+.gamify-profile-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--grid);
+}
+
+.gamify-rank-group, .gamify-stats-pills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gamify-level-pill {
+  background: var(--mark);
+  color: #14213d;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 2px 12px;
+  font-family: "Prompt", sans-serif;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.gamify-rank {
+  font-family: "Prompt", sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.gamify-star-pill {
+  background: rgba(255, 216, 77, 0.25);
+  border: 1.5px solid #d4a300;
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-family: "Prompt", sans-serif;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.gamify-xp-text {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--path);
+}
+
+.gamify-xp-wrap {
+  margin-bottom: 14px;
+}
+
+.gamify-xp-bar {
+  width: 100%;
+  height: 10px;
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.gamify-xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #ffd84d);
+  transition: width 0.3s ease;
+}
+
+.achievements-drawer {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--grid);
+}
+
+.achievements-summary {
+  cursor: pointer;
+  font-family: "Prompt", sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--path);
+  user-select: none;
+}
+
+.achievements-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+@media (min-width: 640px) {
+  .achievements-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .achievements-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.achievement-card {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+
+.achievement-card.unlocked {
+  border-color: var(--ok);
+  background: rgba(21, 128, 61, 0.08);
+}
+
+.achievement-card.locked {
+  opacity: 0.65;
+  border-style: dashed;
+}
+
+.achievement-icon {
+  font-size: 1.6rem;
+  line-height: 1.1;
+  flex-shrink: 0;
+}
+
+.achievement-title {
+  font-family: "Prompt", sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.achievement-desc {
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 2px 0 4px;
+}
+
+.achievement-state {
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.badge-stars {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  background: rgba(255, 216, 77, 0.25);
+  border: 1.5px solid #d4a300;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+/* Floating Toast & Confetti */
+.lp-confetti-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.lp-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  max-width: 340px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--panel);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  border-radius: 10px;
+  z-index: 9998;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.lp-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.lp-toast-icon {
+  font-size: 1.65rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.lp-toast-title {
+  font-family: "Prompt", sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.lp-toast-sub {
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+
+@media (max-width: 480px) {
+  .lp-toast {
+    left: 14px;
+    right: 14px;
+    max-width: none;
+  }
+  .game-hud {
+    padding: 8px 10px;
+  }
+}

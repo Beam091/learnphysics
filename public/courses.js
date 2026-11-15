@@ -25,16 +25,18 @@
 
   function getLessonStatus(slug, progressMap) {
     var p = progressMap && progressMap[slug];
-    if (!p) return { passed: false, inProgress: false, score: null };
+    if (!p) return { passed: false, inProgress: false, score: null, stars: 0 };
     var hasQuiz = typeof p.quiz === "number";
     var quizPassed = hasQuiz && p.quiz >= 60;
     var allSteps = !!(p.video && p.anim && p.game);
     var passed = quizPassed || allSteps;
     var inProgress = !passed && !!(p.video || p.anim || p.game || (hasQuiz && p.quiz > 0));
+    var stars = typeof p.stars === "number" && p.stars > 0 ? Math.min(3, p.stars) : (p.game ? 1 : 0);
     return {
       passed: passed,
       inProgress: inProgress,
       score: hasQuiz ? p.quiz : null,
+      stars: stars,
     };
   }
 
@@ -94,8 +96,9 @@
     var percentPassed = totalLessons > 0 ? Math.round((passedCount / totalLessons) * 100) : 0;
     var isLoggedIn = !!(window.LPAuth && window.LPAuth.user);
 
-    // 1. แถบความคืบหน้ารวม (Overall Progress Banner)
+    // 1. แถบความคืบหน้ารวม และโปรไฟล์ Gamification (Overall Progress & Gamification Dashboard)
     var banner = make("div", "progress-banner" + (!isLoggedIn ? " progress-banner-guest" : ""));
+    banner.id = "gamifyDashboard";
 
     if (!isLoggedIn) {
       var guestWrap = make("div", "progress-guest-wrap");
@@ -111,6 +114,34 @@
       guestWrap.appendChild(guestLoginBtn);
       banner.appendChild(guestWrap);
     } else {
+      var gamify = window.LPGamify ? window.LPGamify.getStats() : null;
+      if (gamify) {
+        var profileRow = make("div", "gamify-profile-row");
+        var rankGroup = make("div", "gamify-rank-group");
+        rankGroup.appendChild(make("span", "gamify-level-pill", "⚡ Lv." + gamify.level));
+        rankGroup.appendChild(make("span", "gamify-rank", "ฉายา: " + gamify.rankTitle));
+        profileRow.appendChild(rankGroup);
+
+        var statsGroup = make("div", "gamify-stats-pills");
+        statsGroup.appendChild(make("span", "gamify-star-pill", "⭐ ดาวสะสม " + gamify.totalStars + " ดวง"));
+        statsGroup.appendChild(make("span", "gamify-xp-text", gamify.totalXP + " XP (" + gamify.xpInLevel + "/" + gamify.xpForNext + " XP สู่ Lv." + (gamify.level + 1) + ")"));
+        profileRow.appendChild(statsGroup);
+        banner.appendChild(profileRow);
+
+        var xpWrap = make("div", "gamify-xp-wrap");
+        var xpBar = make("div", "gamify-xp-bar");
+        xpBar.setAttribute("role", "progressbar");
+        xpBar.setAttribute("aria-valuenow", String(gamify.xpPercent));
+        xpBar.setAttribute("aria-valuemin", "0");
+        xpBar.setAttribute("aria-valuemax", "100");
+        xpBar.setAttribute("aria-label", "ค่าประสบการณ์ XP สู่เลเวลถัดไป");
+        var xpFill = make("div", "gamify-xp-fill");
+        xpFill.style.width = gamify.xpPercent + "%";
+        xpBar.appendChild(xpFill);
+        xpWrap.appendChild(xpBar);
+        banner.appendChild(xpWrap);
+      }
+
       var bannerHead = make("div", "progress-header");
       var bannerTitle = make("strong", null, "ความคืบหน้าการเรียนของคุณ: ");
       var bannerInfo = document.createTextNode(
@@ -132,6 +163,27 @@
 
       banner.appendChild(bannerHead);
       banner.appendChild(barWrap);
+
+      if (gamify && gamify.achievements) {
+        var unlockedCount = gamify.achievements.filter(function (a) { return a.unlocked; }).length;
+        var drawer = make("details", "achievements-drawer");
+        var sum = make("summary", "achievements-summary", "🏅 ดูเหรียญรางวัลความสำเร็จของคุณ (ปลดล็อกแล้ว " + unlockedCount + "/" + gamify.achievements.length + " เหรียญ)");
+        drawer.appendChild(sum);
+
+        var achGrid = make("div", "achievements-grid");
+        gamify.achievements.forEach(function (ach) {
+          var card = make("div", "achievement-card" + (ach.unlocked ? " unlocked" : " locked"));
+          card.appendChild(make("div", "achievement-icon", ach.icon));
+          var achBody = make("div", "achievement-body");
+          achBody.appendChild(make("div", "achievement-title", ach.title));
+          achBody.appendChild(make("div", "achievement-desc", ach.desc));
+          achBody.appendChild(make("span", "achievement-state", ach.unlocked ? "✔ ปลดล็อกแล้ว" : "🔒 ยังไม่ปลดล็อก"));
+          card.appendChild(achBody);
+          achGrid.appendChild(card);
+        });
+        drawer.appendChild(achGrid);
+        banner.appendChild(drawer);
+      }
     }
     box.appendChild(banner);
 
@@ -258,6 +310,12 @@
                 item.appendChild(make("span", "badge-done", badgeText));
               } else if (lStatus.inProgress) {
                 item.appendChild(make("span", "badge-prog", "กำลังเรียน"));
+              }
+
+              if (lStatus.stars > 0) {
+                var starBadge = make("span", "badge-stars", "🎮 " + "⭐".repeat(lStatus.stars));
+                starBadge.title = "ดาวจากมินิเกมฝึกทักษะ (" + lStatus.stars + "/3 ดาว)";
+                item.appendChild(starBadge);
               }
 
               if (isBookmarked) {

@@ -65,10 +65,213 @@
     svgEl(svg, "polygon", { points: p1 + " " + p2 + " " + p3, class: "arrow-head" });
   }
 
+  // --------------------------------------------------------- shared Game HUD
+  // กล่อง HUD สำหรับเกมฝึกทักษะทั้ง 7 แบบ: ด่าน 1-3, ดาว ⭐⭐⭐, คะแนน, คอมโบ, คำใบ้/สูตร, ปุ่มเสียง
+  function createGameHUD(container, cfg) {
+    cfg = cfg || {};
+    var maxStages = cfg.maxStages || 3;
+    var state = {
+      stage: 1,
+      maxStages: maxStages,
+      score: 0,
+      combo: 0,
+      bestStars: 0,
+      attempts: 0,
+      stageWon: false,
+      everWon: false,
+      target: 0,
+    };
+
+    var stageLabel = h("span", { class: "hud-stage-label", text: "🎮 ด่าน 1/" + maxStages });
+    var dotsWrap = h("span", { class: "stage-dots" });
+    var dotEls = [];
+    for (var i = 1; i <= maxStages; i++) {
+      var dot = h("span", { class: "stage-dot" + (i === 1 ? " active" : ""), title: "ด่านที่ " + i });
+      dotEls.push(dot);
+      dotsWrap.appendChild(dot);
+    }
+    var stageBox = h("div", { class: "hud-stage" }, [stageLabel, dotsWrap]);
+    var starsEl = h("div", { class: "hud-stars", text: "☆☆☆", title: "คะแนนดาว (ยิง/ตอบถูกในครั้งแรกได้ 3 ดาวเต็ม)" });
+
+    var scoreEl = h("div", { class: "hud-score", text: "คะแนน: 0" });
+    var comboEl = h("div", { class: "hud-combo", text: "🔥 คอมโบ x0" });
+
+    var hintBtn = h("button", { type: "button", class: "hud-btn", text: "💡 คำใบ้ / สูตร" });
+    var soundEnabled = window.LPSound ? window.LPSound.enabled : true;
+    var soundBtn = h("button", {
+      type: "button",
+      class: "hud-btn",
+      text: soundEnabled ? "🔊 เสียง" : "🔇 ปิดเสียง",
+      "aria-pressed": soundEnabled ? "true" : "false",
+    });
+
+    var hud = h("div", { class: "game-hud" }, [
+      h("div", { class: "hud-left" }, [stageBox, starsEl]),
+      h("div", { class: "hud-stats" }, [scoreEl, comboEl]),
+      h("div", { class: "hud-tools" }, [hintBtn, soundBtn]),
+    ]);
+
+    var info = h("p", { class: "game-info" });
+    var missionCard = h("div", { class: "game-mission-card" }, [
+      h("span", { class: "mission-badge", text: "🎯 เป้าหมายภารกิจ" }),
+      info,
+    ]);
+
+    var hintFormulaEl = h("div", { class: "hint-formula", text: "สูตร: " + (cfg.formula || "") });
+    var hintGuideEl = h("div", { class: "hint-guide" });
+    var hintBox = h("div", { class: "game-hint-box" }, [hintFormulaEl, hintGuideEl]);
+    hintBox.hidden = true;
+
+    hintBtn.addEventListener("click", function () {
+      if (window.LPSound) window.LPSound.click();
+      hintBox.hidden = !hintBox.hidden;
+      if (!hintBox.hidden) refreshHint();
+    });
+
+    soundBtn.addEventListener("click", function () {
+      if (window.LPSound) {
+        window.LPSound.toggle();
+      } else {
+        soundEnabled = !soundEnabled;
+        soundBtn.textContent = soundEnabled ? "🔊 เสียง" : "🔇 ปิดเสียง";
+        soundBtn.setAttribute("aria-pressed", soundEnabled ? "true" : "false");
+      }
+    });
+
+    document.addEventListener("lp:sound-changed", function (e) {
+      var on = !!(e && e.detail && e.detail.enabled);
+      soundBtn.textContent = on ? "🔊 เสียง" : "🔇 ปิดเสียง";
+      soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+
+    var msg = h("p", { class: "game-msg", "aria-live": "polite" });
+    var nextBtn = h("button", { type: "button", class: "secondary", text: "สุ่มเป้าใหม่" });
+
+    function refreshHint() {
+      if (cfg.buildHint) {
+        hintGuideEl.textContent = cfg.buildHint(state.target, state.attempts);
+      } else {
+        hintGuideEl.textContent = "ปรับค่าตัวแปรตามสมการแล้วกดปุ่มทดสอบได้เลย";
+      }
+    }
+
+    function syncHUD() {
+      stageLabel.textContent = "🎮 ด่าน " + state.stage + "/" + state.maxStages;
+      for (var d = 0; d < dotEls.length; d++) {
+        var stNum = d + 1;
+        dotEls[d].className = "stage-dot";
+        if (stNum < state.stage || (stNum === state.stage && state.stageWon)) {
+          dotEls[d].classList.add("done");
+        } else if (stNum === state.stage) {
+          dotEls[d].classList.add("active");
+        }
+      }
+      var shownStars = state.stageWon
+        ? (state.attempts === 1 ? 3 : state.attempts === 2 ? 2 : 1)
+        : 0;
+      starsEl.textContent = "⭐".repeat(shownStars) + "☆".repeat(3 - shownStars);
+      scoreEl.textContent = "คะแนน: " + state.score;
+      comboEl.textContent = "🔥 คอมโบ x" + state.combo;
+      comboEl.classList.toggle("hot", state.combo >= 2);
+    }
+
+    function setMission(text, targetVal, initMsg) {
+      state.target = targetVal;
+      state.attempts = 0;
+      state.stageWon = false;
+      info.textContent = text;
+      missionCard.setAttribute("data-target", String(targetVal));
+      msg.className = "game-msg";
+      msg.textContent = initMsg || "ปรับค่าตัวแปรแล้วกดปุ่มทดสอบเพื่อวัดผล";
+      nextBtn.textContent = "สุ่มเป้าใหม่";
+      nextBtn.className = "secondary";
+      hintBox.hidden = true;
+      refreshHint();
+      syncHUD();
+    }
+
+    function recordAttempt(isHit, winText, missText) {
+      state.attempts += 1;
+      if (isHit) {
+        if (!state.stageWon) {
+          state.stageWon = true;
+          var stars = state.attempts === 1 ? 3 : state.attempts === 2 ? 2 : 1;
+          if (stars > state.bestStars) state.bestStars = stars;
+          state.combo += 1;
+          var pts = stars * 100 * Math.min(state.combo, 5);
+          state.score += pts;
+
+          if (state.stage >= state.maxStages) {
+            if (window.LPSound) window.LPSound.fanfare();
+            if (window.LPGamify && window.LPGamify.confetti) window.LPGamify.confetti();
+            nextBtn.textContent = "🏆 เล่นรอบใหม่ (ชนะครบ 3 ด่านแล้ว!)";
+            nextBtn.className = "cta-main";
+          } else {
+            if (window.LPSound) window.LPSound.win(stars);
+            nextBtn.textContent = "▶ ไปด่านถัดไป (ด่าน " + (state.stage + 1) + "/3)";
+            nextBtn.className = "cta-main";
+          }
+
+          syncHUD();
+          var starText = "⭐".repeat(stars) + " (+" + pts + " คะแนน)";
+          msg.className = "game-msg ok";
+          msg.textContent = winText + " • " + starText;
+
+          state.everWon = true;
+          if (cfg.onWin) cfg.onWin(state.attempts, state.bestStars, state.score);
+        } else {
+          if (window.LPSound) window.LPSound.win(3);
+          msg.className = "game-msg ok";
+          msg.textContent = winText + " (ผ่านด่านนี้แล้ว กดปุ่มไปด่านถัดไปได้เลย!)";
+        }
+      } else {
+        state.combo = 0;
+        if (window.LPSound) window.LPSound.miss();
+        syncHUD();
+        msg.className = "game-msg warn";
+        msg.textContent = missText + " (ครั้งที่ " + state.attempts + ")";
+        if (state.attempts >= 2) {
+          hintBox.hidden = false;
+          refreshHint();
+        }
+      }
+    }
+
+    nextBtn.addEventListener("click", function () {
+      if (window.LPSound) window.LPSound.click();
+      if (state.stageWon) {
+        if (state.stage < state.maxStages) {
+          state.stage += 1;
+        } else {
+          state.stage = 1;
+          state.score = 0;
+          state.combo = 0;
+        }
+      }
+      if (cfg.onPickNew) cfg.onPickNew(state.stage);
+    });
+
+    container.appendChild(hud);
+    container.appendChild(missionCard);
+    container.appendChild(hintBox);
+
+    return {
+      state: state,
+      info: info,
+      msg: msg,
+      nextBtn: nextBtn,
+      hintBox: hintBox,
+      setMission: setMission,
+      recordAttempt: recordAttempt,
+      refreshHint: refreshHint,
+    };
+  }
+
   // ---------------------------------------------------------------- projectile
   function projectile(container, config, opts) {
     opts = opts || {};
     config = config || {};
+    var isGame = !!opts.gameMode;
     var G = 9.8, W = 170, H = 90, VBW = 680, VBH = 360;
     var M = { l: 46, r: 14, t: 14, b: 38 };
     var ac = config.angle || { min: 10, max: 80, default: 45 };
@@ -96,6 +299,7 @@
     var path = svgEl(svg, "polyline", { class: "path", points: "" });
     var apex = svgEl(svg, "circle", { class: "mark", r: 5, cx: 0, cy: 0 });
     var land = svgEl(svg, "circle", { class: "mark", r: 5, cx: 0, cy: 0 });
+    var impactRing = svgEl(svg, "circle", { class: "target-ring", r: 14, cx: 0, cy: 0, fill: "none", stroke: "var(--ball)", "stroke-width": 2.5, opacity: 0 });
     var ball = svgEl(svg, "circle", { class: "ball", r: 7, cx: sx(0), cy: sy(0) });
 
     var rangeOut = h("dd", { text: "-" }), heightOut = h("dd", { text: "-" }), timeOut = h("dd", { text: "-" });
@@ -108,7 +312,7 @@
 
     var angleF = field("มุมยิง", "องศา", { min: ac.min, max: ac.max, value: ac.default }, function () { interact(); update(); });
     var speedF = field("ความเร็วต้น", "เมตร/วินาที", { min: sc.min, max: sc.max, value: sc.default }, function () { interact(); update(); });
-    var shootBtn = h("button", { type: "button", text: "ยิง" });
+    var shootBtn = h("button", { type: "button", text: isGame ? "🚀 ยิงกระสุน!" : "ยิง" });
 
     function compute() {
       var a = (Number(angleF.input.value) * Math.PI) / 180;
@@ -124,25 +328,59 @@
     }
     function stop() { if (frame !== null) { cancelAnimationFrame(frame); frame = null; } }
 
-    function update() {
-      stop();
-      compute();
+    function setFullPath(maxFrac) {
       var pts = [];
-      for (var i = 0; i <= 60; i++) {
-        var p = pos((cur.T * i) / 60);
+      var steps = 60;
+      var maxIdx = Math.max(2, Math.round(steps * maxFrac));
+      for (var i = 0; i <= maxIdx; i++) {
+        var p = pos((cur.T * i) / steps);
         pts.push(sx(p.x).toFixed(1) + "," + sy(Math.max(p.y, 0)).toFixed(1));
       }
       path.setAttribute("points", pts.join(" "));
-      apex.setAttribute("cx", sx(cur.R / 2)); apex.setAttribute("cy", sy(cur.H));
-      land.setAttribute("cx", sx(cur.R)); land.setAttribute("cy", sy(0));
-      placeBall(0);
-      rangeOut.textContent = cur.R.toFixed(1) + " ม.";
-      heightOut.textContent = cur.H.toFixed(1) + " ม.";
-      timeOut.textContent = cur.T.toFixed(2) + " วิ";
+    }
+
+    function update() {
+      stop();
+      compute();
+      impactRing.setAttribute("opacity", "0");
+      if (isGame) {
+        // ซ่อนวิถีเต็มในโหมดเกม: แสดงเพียงเส้นเล็ง 22% แรกเพื่อไม่ให้เฉลยจุดตกก่อนยิง
+        setFullPath(0.22);
+        path.setAttribute("stroke-dasharray", "6 5");
+        apex.style.visibility = "hidden";
+        land.style.visibility = "hidden";
+        placeBall(0);
+        rangeOut.textContent = "รอการยิง...";
+        heightOut.textContent = "รอการยิง...";
+        timeOut.textContent = "รอการยิง...";
+      } else {
+        setFullPath(1);
+        path.removeAttribute("stroke-dasharray");
+        apex.style.visibility = "visible";
+        land.style.visibility = "visible";
+        apex.setAttribute("cx", sx(cur.R / 2)); apex.setAttribute("cy", sy(cur.H));
+        land.setAttribute("cx", sx(cur.R)); land.setAttribute("cy", sy(0));
+        placeBall(0);
+        rangeOut.textContent = cur.R.toFixed(1) + " ม.";
+        heightOut.textContent = cur.H.toFixed(1) + " ม.";
+        timeOut.textContent = cur.T.toFixed(2) + " วิ";
+      }
     }
 
     function finish() {
+      setFullPath(1);
+      path.removeAttribute("stroke-dasharray");
+      apex.style.visibility = "visible";
+      land.style.visibility = "visible";
+      apex.setAttribute("cx", sx(cur.R / 2)); apex.setAttribute("cy", sy(cur.H));
+      land.setAttribute("cx", sx(cur.R)); land.setAttribute("cy", sy(0));
+      impactRing.setAttribute("cx", sx(cur.R));
+      impactRing.setAttribute("cy", sy(0));
+      impactRing.setAttribute("opacity", "1");
       placeBall(cur.T);
+      rangeOut.textContent = cur.R.toFixed(1) + " ม.";
+      heightOut.textContent = cur.H.toFixed(1) + " ม.";
+      timeOut.textContent = cur.T.toFixed(2) + " วิ";
       frame = null;
       if (opts.onLand) opts.onLand(cur.R);
     }
@@ -150,12 +388,22 @@
     function shoot() {
       interact();
       stop();
+      compute();
+      if (isGame && window.LPSound) window.LPSound.launch();
       if (reducedMotion()) { finish(); return; }
+      var animDur = isGame ? 0.65 : cur.T;
       var start = performance.now();
+      impactRing.setAttribute("opacity", "0");
       function step(now) {
-        var t = (now - start) / 1000;
-        if (t >= cur.T) { finish(); return; }
-        placeBall(t);
+        var elapsed = (now - start) / 1000;
+        var frac = Math.min(1, elapsed / animDur);
+        if (frac >= 1) { finish(); return; }
+        var simT = frac * cur.T;
+        if (isGame) {
+          path.removeAttribute("stroke-dasharray");
+          setFullPath(frac);
+        }
+        placeBall(simT);
         frame = requestAnimationFrame(step);
       }
       placeBall(0);
@@ -181,10 +429,15 @@
     return {
       angleInput: angleF.input,
       speedInput: speedF.input,
+      shootBtn: shootBtn,
+      resetPreview: update,
       setTarget: function (xt, tol) {
         clear(targetG);
-        svgEl(targetG, "rect", { x: sx(xt - tol), y: sy(0) - 14, width: sx(xt + tol) - sx(xt - tol), height: 14, class: "target" });
-        svgEl(targetG, "text", { x: sx(xt), y: sy(0) - 20, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "เป้า (" + xt + " ม.)";
+        var x1 = sx(xt - tol), x2 = sx(xt + tol), cx = sx(xt), cy = sy(0);
+        svgEl(targetG, "rect", { x: x1, y: cy - 14, width: Math.max(10, x2 - x1), height: 14, class: "target" });
+        svgEl(targetG, "line", { x1: cx, y1: cy - 14, x2: cx, y2: cy - 42, class: "g-axis", "stroke-width": 2 });
+        svgEl(targetG, "polygon", { points: cx + "," + (cy - 42) + " " + (cx + 18) + "," + (cy - 34) + " " + cx + "," + (cy - 26), class: "ball" });
+        svgEl(targetG, "text", { x: cx, y: cy - 48, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "เป้า (" + xt + " ม.)";
       },
     };
   }
@@ -317,36 +570,44 @@
     config = config || {};
     var range = config.targetDistance || config.targetRange || config.target || [40, 120];
     var tol = Math.max(config.tolerance || 4, 3);
-    var target = 0, attempts = 0, won = false;
-
-    var info = h("p", { class: "game-info" });
-    var msg = h("p", { class: "game-msg", "aria-live": "polite", text: "ปรับมุมและความเร็ว แล้วกดยิงให้ตกในช่วงเป้า" });
-    var newBtn = h("button", { type: "button", class: "secondary", text: "สุ่มเป้าใหม่" });
-    var view = h("div", { class: "game-view" });
+    var bestSol = { a: 45, s: 25 };
 
     var viewConfig = Object.assign({}, config.view || {}, {
       angle: config.angle || (config.view && config.view.angle),
       speed: config.speed || (config.view && config.view.speed),
     });
 
-    var engine = projectile(view, viewConfig, {
-      extraActions: [newBtn],
-      onLand: function (R) {
-        attempts += 1;
-        var diff = R - target;
-        if (Math.abs(diff) <= tol) {
-          msg.className = "game-msg ok";
-          msg.textContent = "ถูกเป้าหมายอย่างแม่นยำ! วัตถุตกที่ระยะ " + R.toFixed(1) + " ม. (เป้า " + target + "±" + tol + " ม.) ใช้ " + attempts + " ครั้ง กด “สุ่มเป้าใหม่” เพื่อเล่นอีกรอบ";
-          if (!won) { won = true; if (opts.onWin) opts.onWin(attempts); }
-        } else {
-          msg.className = "game-msg";
-          msg.textContent = (diff < 0 ? "ตกสั้นไป " : "ตกเลยเป้าไป ") + Math.abs(diff).toFixed(1) + " เมตร (ตกที่ " + R.toFixed(1) + " ม., เป้า " + target + " ม.) ลองปรับมุมหรือความเร็วใหม่ (ยิงครั้งที่ " + attempts + ")";
+    var view = h("div", { class: "game-view" });
+    var engine = null;
+
+    var hud = createGameHUD(container, {
+      maxStages: 3,
+      formula: "R = (v² · sin 2θ) / g  เมื่อ g = 9.8 ม./วิ² (มุม 45° ให้ระยะไกลสุด)",
+      buildHint: function (target, attempts) {
+        var reqV45 = Math.sqrt(target * 9.8).toFixed(1);
+        if (attempts >= 2) {
+          return "คำแนะนำเพิ่มเติม: ลองตั้งมุมยิงประมาณ " + bestSol.a + "° และความเร็วต้นใกล้เคียง " + bestSol.s + " ม./วิ (กดยิงได้เลย!)";
         }
+        return "ถ้าตั้งมุม θ = 45° จะได้ sin 90° = 1 ดังนั้นความเร็วต้น v ≈ √(R·g) ≈ " + reqV45 + " ม./วิ";
+      },
+      onWin: opts.onWin,
+      onPickNew: pickTarget,
+    });
+
+    engine = projectile(view, viewConfig, {
+      gameMode: true,
+      extraActions: [hud.nextBtn],
+      onLand: function (R) {
+        var target = hud.state.target;
+        var diff = R - target;
+        var isHit = Math.abs(diff) <= tol;
+        var winTxt = "เข้าเป้าหมายอย่างแม่นยำ! ตกที่ " + R.toFixed(1) + " ม. (เป้า " + target + "±" + tol + " ม.)";
+        var missTxt = (diff < 0 ? "ตกสั้นไป " : "ตกเลยเป้าไป ") + Math.abs(diff).toFixed(1) + " เมตร (ตกที่ " + R.toFixed(1) + " ม.)";
+        hud.recordAttempt(isHit, winTxt, missTxt);
       },
     });
 
     function pickTarget() {
-      // Guaranteed solvable: pick candidate angle and speed from actual slider bounds
       var cands = [];
       var allCands = [];
       var aMin = Math.max(15, Number(engine.angleInput ? engine.angleInput.min : 10));
@@ -362,40 +623,36 @@
           var R = (s * s * Math.sin(2 * rad)) / G;
           if (R >= 15 && R <= 134 && (Math.abs(a - curAngle) >= 3 || Math.abs(s - curSpeed) >= 2)) {
             var rRound = Math.round(R);
-            allCands.push(rRound);
-            if (R >= range[0] && R <= range[1]) {
-              cands.push(rRound);
-            }
+            var rec = { target: rRound, a: a, s: s };
+            allCands.push(rec);
+            if (R >= range[0] && R <= range[1]) cands.push(rec);
           }
         }
       }
       var pool = cands.length > 0 ? cands : allCands;
-      if (pool.length > 0) {
-        target = pool[Math.floor(Math.random() * pool.length)];
-      } else {
-        target = 60;
-      }
-      attempts = 0; won = false;
-      msg.className = "game-msg";
-      info.textContent = "เป้าหมาย: ยิงให้ตกที่ระยะ " + target + " เมตร (ยอมให้คลาดเคลื่อนได้ ±" + tol + " เมตร)";
-      msg.textContent = "ปรับมุมและความเร็วต้น แล้วกดยิงให้ตกในช่วงเป้า";
-      engine.setTarget(target, tol);
+      var chosen = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : { target: 60, a: 45, s: 24 };
+      bestSol = { a: chosen.a, s: chosen.s };
+      engine.setTarget(chosen.target, tol);
+      if (engine.resetPreview) engine.resetPreview();
+      hud.setMission(
+        "ด่านที่ " + hud.state.stage + "/3: ยิงกระสุนให้ตกที่ระยะ " + chosen.target + " เมตร (±" + tol + " ม.)",
+        chosen.target,
+        "ปรับมุมและความเร็วต้น แล้วกด “🚀 ยิงกระสุน!”"
+      );
     }
 
-    newBtn.addEventListener("click", pickTarget);
-    container.appendChild(info);
     container.appendChild(view);
-    container.appendChild(msg);
+    container.appendChild(hud.msg);
     pickTarget();
   }
 
   // ------------------------------------------------------------------ ohm-law
   // วาดวงจรอย่างง่าย: แบตเตอรี่ + ตัวต้านทาน พร้อมจุดแสดงการไหลของกระแส
-  function drawCircuit(svg, V, R) {
+  function drawCircuit(svg, V, R, gameOpts) {
     var I = V / R;
     clear(svg);
     var x1 = 120, x2 = 560, y1 = 50, y2 = 210;
-    svgEl(svg, "polyline", { points: x1 + "," + (y2 - 40) + " " + x1 + "," + y2 + " " + x2 + "," + y2 + " " + x2 + "," + y1 + " " + (x1 + 0) + "," + y1 + " " + x1 + "," + (y1 + 40), class: "g-axis", fill: "none" });
+    svgEl(svg, "polyline", { points: x1 + "," + (y2 - 40) + " " + x1 + "," + y2 + " " + x2 + "," + y2 + " " + x2 + "," + y1 + " " + x1 + "," + y1 + " " + x1 + "," + (y1 + 40), class: "g-axis", fill: "none" });
     // แบตเตอรี่ (ซ้าย)
     svgEl(svg, "line", { x1: x1 - 22, y1: (y1 + y2) / 2 - 8, x2: x1 + 22, y2: (y1 + y2) / 2 - 8, class: "g-axis", "stroke-width": 4 });
     svgEl(svg, "line", { x1: x1 - 12, y1: (y1 + y2) / 2 + 8, x2: x1 + 12, y2: (y1 + y2) / 2 + 8, class: "g-axis", "stroke-width": 4 });
@@ -404,10 +661,20 @@
     var rw = 40 + R * 4;
     svgEl(svg, "rect", { x: (x1 + x2) / 2 - rw / 2, y: y1 - 14, width: rw, height: 28, class: "target", "fill-opacity": 0.8 });
     svgEl(svg, "text", { x: (x1 + x2) / 2, y: y1 - 22, "text-anchor": "middle", class: "g-label" }).textContent = "R = " + R + " Ω";
+
+    var isGamePreview = gameOpts && !gameOpts.revealed;
+    if (isGamePreview) {
+      // แอมมิเตอร์โหมดเตรียมพร้อม: ซ่อนค่ากระแสจริงจนกว่าจะกดปล่อยกระแส
+      svgEl(svg, "circle", { cx: x2, cy: (y1 + y2) / 2, r: 22, fill: "var(--panel)", stroke: "var(--ink)", "stroke-width": 2.5 });
+      svgEl(svg, "text", { x: x2, y: (y1 + y2) / 2 + 5, "text-anchor": "middle", class: "g-label", "font-size": "14px" }).textContent = "A: ?";
+      svgEl(svg, "text", { x: (x1 + x2) / 2, y: y2 + 30, "text-anchor": "middle", class: "g-label" }).textContent = "กระแสไฟฟ้า I = ? แอมแปร์  (กดปล่อยกระแสเพื่อตรวจวัด)";
+      return;
+    }
+
     // จุดกระแส: จำนวนและความเร็วตามค่า I
     var n = Math.max(2, Math.min(14, Math.round(I * 2)));
     var perim = (x2 - x1) * 2 + (y2 - y1) * 2;
-    var dur = Math.max(0.6, 6 / (1 + I));
+    var dur = Math.max(0.5, 6 / (1 + I));
     var path = "M " + x1 + " " + y1 + " L " + x2 + " " + y1 + " L " + x2 + " " + y2 + " L " + x1 + " " + y2 + " Z";
     for (var i = 0; i < n; i++) {
       var dot = svgEl(svg, "circle", { r: 5, class: "ball", cx: x1, cy: y1 });
@@ -418,7 +685,14 @@
         dot.setAttribute("cx", x1 + (perim * i) / n % (x2 - x1));
       }
     }
-    svgEl(svg, "text", { x: (x1 + x2) / 2, y: y2 + 30, "text-anchor": "middle", class: "g-label" }).textContent = "I = " + I.toFixed(2) + " แอมแปร์  (ลูกศรกระแสไหลตามเข็มนาฬิกา)";
+
+    if (gameOpts) {
+      svgEl(svg, "circle", { cx: x2, cy: (y1 + y2) / 2, r: 24, fill: "var(--panel)", stroke: gameOpts.hit ? "var(--ok)" : "var(--path)", "stroke-width": 3 });
+      svgEl(svg, "text", { x: x2, y: (y1 + y2) / 2 + 5, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = I.toFixed(1) + "A";
+      svgEl(svg, "text", { x: (x1 + x2) / 2, y: y2 + 30, "text-anchor": "middle", class: "g-label" }).textContent = "วัดกระแสได้ I = " + I.toFixed(2) + " A  (เป้าหมาย: " + gameOpts.target.toFixed(1) + " A)";
+    } else {
+      svgEl(svg, "text", { x: (x1 + x2) / 2, y: y2 + 30, "text-anchor": "middle", class: "g-label" }).textContent = "I = " + I.toFixed(2) + " แอมแปร์  (ลูกศรกระแสไหลตามเข็มนาฬิกา)";
+    }
   }
 
   function ohmLaw(container, config, opts) {
@@ -572,61 +846,82 @@
     var tr = config.targetCurrent || config.target || [0.6, 5.0];
     var vc = config.voltage || { min: 2, max: 24, default: 12 };
     var rc = config.resistance || { min: 1, max: 20, default: 8 };
-    var target = 0, attempts = 0, won = false;
-    var info = h("p", { class: "game-info" });
-    var msg = h("p", { class: "game-msg", "aria-live": "polite" });
+    var revealed = false, lastHit = false, bestSol = { v: 12, r: 6 };
+
+    var hud = createGameHUD(container, {
+      maxStages: 3,
+      formula: "กฎของโอห์ม: I = V / R  (หรือหาแรงดัน V = I × R)",
+      buildHint: function (target, attempts) {
+        if (attempts >= 2) {
+          return "คำแนะนำเพิ่มเติม: ลองตั้งแรงดัน V ≈ " + bestSol.v + " โวลต์ และความต้านทาน R ≈ " + bestSol.r + " โอห์ม";
+        }
+        return "ลดความต้านทาน R หรือเพิ่มแรงดัน V จะทำให้กระแส I เพิ่มขึ้น (ต้องการ I ≈ " + target.toFixed(1) + " A)";
+      },
+      onWin: opts.onWin,
+      onPickNew: pick,
+    });
+
     var svg = svgEl(null, "svg", { viewBox: "0 0 680 260", class: "plot", role: "img", "aria-label": "วงจรไฟฟ้าอย่างง่ายสำหรับเกมปรับกระแสให้ตรงเป้า" });
-    var vF = field("แรงดัน V =", "โวลต์", { min: vc.min, max: vc.max, step: 0.5, value: vc.default }, function () { preview(); });
-    var rF = field("ความต้านทาน R =", "โอห์ม", { min: rc.min, max: rc.max, step: 0.5, value: rc.default }, function () { preview(); });
-    var checkBtn = h("button", { type: "button", text: "ตรวจคำตอบ" });
-    var newBtn = h("button", { type: "button", class: "secondary", text: "สุ่มเป้าใหม่" });
-    function preview() { drawCircuit(svg, Number(vF.input.value), Number(rF.input.value)); }
+    var vF = field("แรงดัน V =", "โวลต์", { min: vc.min, max: vc.max, step: 0.5, value: vc.default }, function () { revealed = false; preview(); });
+    var rF = field("ความต้านทาน R =", "โอห์ม", { min: rc.min, max: rc.max, step: 0.5, value: rc.default }, function () { revealed = false; preview(); });
+    var checkBtn = h("button", { type: "button", text: "⚡ ปล่อยกระแสตรวจวัด!" });
+
+    function preview() {
+      drawCircuit(svg, Number(vF.input.value), Number(rF.input.value), {
+        revealed: revealed,
+        hit: lastHit,
+        target: hud.state.target,
+      });
+    }
+
     function pick() {
-      // Guaranteed solvable: pick candidate V and R
       var cands = [];
       var curI = Number(vF.input.value) / Number(rF.input.value);
       for (var v = vc.min; v <= vc.max; v = Math.round((v + 0.5) * 10) / 10) {
         for (var r = rc.min; r <= rc.max; r = Math.round((r + 0.5) * 10) / 10) {
           var I = v / r;
-          if (I >= tr[0] && I <= tr[1]) {
-            if (Math.abs(I - curI) > tol * 1.5) {
-              cands.push(Math.round(I * 10) / 10);
-            }
+          if (I >= tr[0] && I <= tr[1] && Math.abs(I - curI) > tol * 1.5) {
+            cands.push({ target: Math.round(I * 10) / 10, v: v, r: r });
           }
         }
       }
+      var chosen;
       if (cands.length > 0) {
-        target = cands[Math.floor(Math.random() * cands.length)];
+        chosen = cands[Math.floor(Math.random() * cands.length)];
       } else {
         var midV = Math.round(((vc.min + vc.max) / 2) * 2) / 2;
         var midR = Math.round(((rc.min + rc.max) / 2) * 2) / 2;
-        target = Math.round((midV / midR) * 10) / 10;
+        chosen = { target: Math.round((midV / midR) * 10) / 10, v: midV, r: midR };
       }
-      attempts = 0; won = false;
-      msg.className = "game-msg";
-      info.textContent = "เป้าหมาย: ปรับแรงดัน V และความต้านทาน R ให้ได้กระแส I = " + target.toFixed(1) + " แอมแปร์ (คลาดเคลื่อนไม่เกิน ±" + tol + " แอมแปร์)";
-      msg.textContent = "เลื่อนแถบ V และ R แล้วกดตรวจคำตอบ";
+      bestSol = { v: chosen.v, r: chosen.r };
+      revealed = false;
+      lastHit = false;
+      hud.setMission(
+        "ด่านที่ " + hud.state.stage + "/3: ปรับแรงดัน V และ R ให้ได้กระแส I = " + chosen.target.toFixed(1) + " แอมแปร์ (±" + tol + " A)",
+        chosen.target,
+        "เลื่อนแถบ V และ R แล้วกด “⚡ ปล่อยกระแสตรวจวัด!”"
+      );
       preview();
     }
+
     checkBtn.addEventListener("click", function () {
       var I = Number(vF.input.value) / Number(rF.input.value);
-      attempts += 1;
+      var target = hud.state.target;
       var diff = I - target;
-      if (Math.abs(diff) <= tol) {
-        msg.className = "game-msg ok";
-        msg.textContent = "ถูกต้อง! ได้กระแส I = " + I.toFixed(2) + " แอมแปร์ ตรงเป้าหมายพอดี ใช้ " + attempts + " ครั้ง กด “สุ่มเป้าใหม่” เพื่อเล่นอีกรอบ";
-        if (!won) { won = true; if (opts.onWin) opts.onWin(attempts); }
-      } else {
-        msg.className = "game-msg";
-        msg.textContent = "ขณะนี้ได้ I = " + I.toFixed(2) + " แอมแปร์ " + (diff < 0 ? "น้อยไป " : "มากไป ") + Math.abs(diff).toFixed(2) + " แอมแปร์ ลองปรับ V หรือ R ใหม่ (ตรวจครั้งที่ " + attempts + ")";
-      }
+      var isHit = Math.abs(diff) <= tol;
+      if (window.LPSound && !isHit) { /* miss sound handled in recordAttempt */ }
+      revealed = true;
+      lastHit = isHit;
+      preview();
+      var winTxt = "วงจรทำงานสมบูรณ์! วัดกระแสได้ I = " + I.toFixed(2) + " A";
+      var missTxt = "วัดกระแสได้ I = " + I.toFixed(2) + " A " + (diff < 0 ? "(น้อยไป " : "(มากไป ") + Math.abs(diff).toFixed(2) + " A)";
+      hud.recordAttempt(isHit, winTxt, missTxt);
     });
-    newBtn.addEventListener("click", pick);
-    container.appendChild(info);
+
     container.appendChild(svg);
     container.appendChild(h("div", { class: "controls" }, [vF.root, rF.root]));
-    container.appendChild(h("div", { class: "actions" }, [checkBtn, newBtn]));
-    container.appendChild(msg);
+    container.appendChild(h("div", { class: "actions" }, [checkBtn, hud.nextBtn]));
+    container.appendChild(hud.msg);
     pick();
   }
 
@@ -638,72 +933,113 @@
     var tr = config.targetSpeed || config.target || [5, 36];
     var fc = config.frequency || { min: 1, max: 10, default: 2 };
     var lc = config.wavelength || { min: 1, max: 10, default: 4 };
-    var target = 0, attempts = 0, won = false;
-    var info = h("p", { class: "game-info" });
-    var msg = h("p", { class: "game-msg", "aria-live": "polite" });
+    var revealed = false, animFrame = null, animPhase = 0, bestSol = { f: 3, l: 4 };
+
+    var hud = createGameHUD(container, {
+      maxStages: 3,
+      formula: "อัตราเร็วคลื่น: v = f × λ  (นำความถี่ f คูณกับความยาวคลื่น λ)",
+      buildHint: function (target, attempts) {
+        if (attempts >= 2) {
+          return "คำแนะนำเพิ่มเติม: ลองตั้งความถี่ f ≈ " + bestSol.f + " Hz และความยาวคลื่น λ ≈ " + bestSol.l + " ม.";
+        }
+        return "เลือกคู่ตัวเลขที่ f × λ มีค่าใกล้เคียง " + target.toFixed(1) + " ม./วิ";
+      },
+      onWin: opts.onWin,
+      onPickNew: pick,
+    });
+
     var svg = svgEl(null, "svg", { viewBox: "0 0 680 200", class: "plot", role: "img", "aria-label": "กราฟคลื่นไซน์ที่เปลี่ยนตามความถี่และความยาวคลื่นที่ผู้เล่นเลือก" });
-    var fF = field("ความถี่ f =", "เฮิรตซ์", { min: fc.min, max: fc.max, step: 0.5, value: fc.default }, function () { preview(); });
-    var lF = field("ความยาวคลื่น λ =", "เมตร", { min: lc.min, max: lc.max, step: 0.5, value: lc.default }, function () { preview(); });
-    var tuneBtn = h("button", { type: "button", text: "จูนคลื่น" });
-    var newBtn = h("button", { type: "button", class: "secondary", text: "สุ่มเป้าใหม่" });
-    function preview() {
+    var fF = field("ความถี่ f =", "เฮิรตซ์", { min: fc.min, max: fc.max, step: 0.5, value: fc.default }, function () { stopAnim(); revealed = false; drawWave(0); });
+    var lF = field("ความยาวคลื่น λ =", "เมตร", { min: lc.min, max: lc.max, step: 0.5, value: lc.default }, function () { stopAnim(); revealed = false; drawWave(0); });
+    var tuneBtn = h("button", { type: "button", text: "🌊 ส่งคลื่นทดสอบ!" });
+
+    function stopAnim() { if (animFrame !== null) { cancelAnimationFrame(animFrame); animFrame = null; } }
+
+    function drawWave(phase) {
       var lam = Number(lF.input.value), freq = Number(fF.input.value), pts = [];
       var curSpeed = freq * lam;
       clear(svg);
-      svgEl(svg, "line", { x1: 20, y1: 100, x2: 660, y2: 100, class: "g-axis" });
+      svgEl(svg, "line", { x1: 20, y1: 105, x2: 660, y2: 105, class: "g-axis" });
       for (var i = 0; i <= 320; i++) {
         var x = (20 * i) / 320;
-        pts.push((20 + x * 32).toFixed(1) + "," + (100 - 60 * Math.sin((2 * Math.PI * x) / lam)).toFixed(1));
+        pts.push((20 + x * 32).toFixed(1) + "," + (105 - 55 * Math.sin((2 * Math.PI * x) / lam - phase)).toFixed(1));
       }
       svgEl(svg, "polyline", { points: pts.join(" "), class: "path", fill: "none" });
-      svgEl(svg, "text", { x: 340, y: 35, "text-anchor": "middle", class: "g-label" }).textContent = "ความเร็วคลื่นขณะนี้: v = f × λ = " + curSpeed.toFixed(1) + " ม./วิ (เป้าหมาย: " + target.toFixed(1) + " ม./วิ)";
+      if (revealed) {
+        svgEl(svg, "text", { x: 340, y: 32, "text-anchor": "middle", class: "g-label" }).textContent = "วัดความเร็วคลื่นได้: v = " + curSpeed.toFixed(1) + " ม./วิ  (เป้า: " + hud.state.target.toFixed(1) + " ม./วิ)";
+      } else {
+        svgEl(svg, "text", { x: 340, y: 32, "text-anchor": "middle", class: "g-label" }).textContent = "ความเร็วคลื่น v = ? ม./วิ  (ตั้ง f=" + freq + " Hz, λ=" + lam + " ม. • กดส่งคลื่นทดสอบ)";
+      }
     }
+
     function pick() {
-      // Guaranteed solvable: pick candidate f and lambda
+      stopAnim();
       var cands = [];
       var curV = Number(fF.input.value) * Number(lF.input.value);
       for (var f = fc.min; f <= fc.max; f = Math.round((f + 0.5) * 10) / 10) {
         for (var l = lc.min; l <= lc.max; l = Math.round((l + 0.5) * 10) / 10) {
           var v = Math.round((f * l) * 10) / 10;
-          if (v >= tr[0] && v <= tr[1]) {
-            if (Math.abs(v - curV) > tol * 1.5) {
-              cands.push(v);
-            }
+          if (v >= tr[0] && v <= tr[1] && Math.abs(v - curV) > tol * 1.5) {
+            cands.push({ target: v, f: f, l: l });
           }
         }
       }
+      var chosen;
       if (cands.length > 0) {
-        target = cands[Math.floor(Math.random() * cands.length)];
+        chosen = cands[Math.floor(Math.random() * cands.length)];
       } else {
         var midF = Math.round(((fc.min + fc.max) / 2) * 2) / 2;
         var midL = Math.round(((lc.min + lc.max) / 2) * 2) / 2;
-        target = Math.round((midF * midL) * 10) / 10;
+        chosen = { target: Math.round((midF * midL) * 10) / 10, f: midF, l: midL };
       }
-      attempts = 0; won = false;
-      msg.className = "game-msg";
-      info.textContent = "เป้าหมาย: จูนคลื่นให้มีอัตราเร็ว v = " + target.toFixed(1) + " เมตร/วินาที (คลาดเคลื่อนไม่เกิน ±" + tol + " ม./วิ) โดย v = f × λ";
-      msg.textContent = "ปรับความถี่ f และความยาวคลื่น λ แล้วกดจูนคลื่น";
-      preview();
+      bestSol = { f: chosen.f, l: chosen.l };
+      revealed = false;
+      hud.setMission(
+        "ด่านที่ " + hud.state.stage + "/3: จูนคลื่นให้ได้อัตราเร็ว v = " + chosen.target.toFixed(1) + " ม./วิ (±" + tol + " ม./วิ)",
+        chosen.target,
+        "ปรับความถี่ f และความยาวคลื่น λ แล้วกด “🌊 ส่งคลื่นทดสอบ!”"
+      );
+      drawWave(0);
     }
+
     tuneBtn.addEventListener("click", function () {
-      var v = Number(fF.input.value) * Number(lF.input.value);
-      attempts += 1;
+      stopAnim();
+      var freq = Number(fF.input.value), lam = Number(lF.input.value);
+      var v = freq * lam;
+      var target = hud.state.target;
       var diff = v - target;
-      if (Math.abs(diff) <= tol) {
-        msg.className = "game-msg ok";
-        msg.textContent = "จูนคลื่นสำเร็จ! ได้อัตราเร็ว v = " + v.toFixed(1) + " เมตร/วินาที ตรงเป้า ใช้ " + attempts + " ครั้ง กด “สุ่มเป้าใหม่” เพื่อเล่นอีกรอบ";
-        if (!won) { won = true; if (opts.onWin) opts.onWin(attempts); }
-      } else {
-        msg.className = "game-msg";
-        msg.textContent = "ขณะนี้ v = " + v.toFixed(1) + " ม./วิ " + (diff < 0 ? "ช้าไป " : "เร็วไป ") + Math.abs(diff).toFixed(1) + " ม./วิ ลองปรับ f หรือ λ ใหม่ (ครั้งที่ " + attempts + ")";
+      var isHit = Math.abs(diff) <= tol;
+      revealed = true;
+      var winTxt = "จูนคลื่นสำเร็จ! ได้อัตราเร็ว v = " + v.toFixed(1) + " ม./วิ";
+      var missTxt = "วัดได้ v = " + v.toFixed(1) + " ม./วิ " + (diff < 0 ? "(ช้าไป " : "(เร็วไป ") + Math.abs(diff).toFixed(1) + " ม./วิ)";
+      hud.recordAttempt(isHit, winTxt, missTxt);
+
+      if (reducedMotion()) {
+        drawWave(Math.PI / 2);
+        return;
       }
+      var start = performance.now();
+      var lastT = start;
+      function step(now) {
+        var elapsed = now - start;
+        var dt = (now - lastT) / 1000;
+        lastT = now;
+        if (elapsed >= 520) {
+          drawWave(animPhase);
+          animFrame = null;
+          return;
+        }
+        animPhase += dt * Math.max(2, freq * 2.2);
+        drawWave(animPhase);
+        animFrame = requestAnimationFrame(step);
+      }
+      animFrame = requestAnimationFrame(step);
     });
-    newBtn.addEventListener("click", pick);
-    container.appendChild(info);
+
     container.appendChild(svg);
     container.appendChild(h("div", { class: "controls" }, [fF.root, lF.root]));
-    container.appendChild(h("div", { class: "actions" }, [tuneBtn, newBtn]));
-    container.appendChild(msg);
+    container.appendChild(h("div", { class: "actions" }, [tuneBtn, hud.nextBtn]));
+    container.appendChild(hud.msg);
     pick();
   }
 
@@ -1899,38 +2235,64 @@
     var fc = config.force || { min: 10, max: 100, default: 35 };
     var mc = config.mass || { min: 1, max: 10, default: 5 };
     var G = 9.8, mu = 0.2;
-    var target = 0, attempts = 0, won = false;
+    var revealed = false, animFrame = null, boxOffset = 0, shakeX = 0, bestSol = { f: 40, m: 5 };
 
-    var info = h("p", { class: "game-info" });
-    var msg = h("p", { class: "game-msg", "aria-live": "polite" });
+    var hud = createGameHUD(container, {
+      maxStages: 3,
+      formula: "กฎของนิวตัน: a = (F − μmg) / m  โดย μ = 0.2, g = 9.8  (F = m × (a + 1.96))",
+      buildHint: function (target, attempts) {
+        if (attempts >= 2) {
+          return "คำแนะนำเพิ่มเติม: ลองตั้งแรงดึง F ≈ " + bestSol.f + " N และมวล m ≈ " + bestSol.m + " กก.";
+        }
+        var curM = Number(mF.input.value);
+        var needF = (curM * (target + mu * G)).toFixed(1);
+        return "ที่มวลปัจจุบัน m = " + curM + " กก. ต้องใช้แรงดึง F ≈ " + needF + " N (หากเกินขอบเขตให้ปรับมวล m)";
+      },
+      onWin: opts.onWin,
+      onPickNew: pick,
+    });
+
     var svg = svgEl(null, "svg", { viewBox: "0 0 680 200", class: "plot", role: "img", "aria-label": "เกมปรับแรงและมวลให้ความเร่งตรงเป้าหมาย" });
+    var fF = field("แรงดึง F =", "นิวตัน", { min: fc.min, max: fc.max, step: 1, value: fc.default }, function () { stopAnim(); revealed = false; boxOffset = 0; shakeX = 0; renderScene(); });
+    var mF = field("มวล m =", "กก.", { min: mc.min, max: mc.max, step: 0.5, value: mc.default }, function () { stopAnim(); revealed = false; boxOffset = 0; shakeX = 0; renderScene(); });
+    var checkBtn = h("button", { type: "button", text: "🚀 ออกแรงดึงกล่อง!" });
 
-    var fF = field("แรงดึง F =", "นิวตัน", { min: fc.min, max: fc.max, step: 1, value: fc.default }, function () { preview(); });
-    var mF = field("มวล m =", "กก.", { min: mc.min, max: mc.max, step: 0.5, value: mc.default }, function () { preview(); });
-    var checkBtn = h("button", { type: "button", text: "ตรวจคำตอบ" });
-    var newBtn = h("button", { type: "button", class: "secondary", text: "สุ่มเป้าใหม่" });
+    function stopAnim() { if (animFrame !== null) { cancelAnimationFrame(animFrame); animFrame = null; } }
 
-    function preview() {
+    function renderScene() {
       var F = Number(fF.input.value), m = Number(mF.input.value);
       var maxFriction = mu * m * G;
       var a = F > maxFriction ? (F - maxFriction) / m : 0;
       clear(svg);
 
-      var floorY = 140;
-      svgEl(svg, "line", { x1: 30, y1: floorY, x2: 650, y2: floorY, class: "g-axis", "stroke-width": 2 });
+      var floorY = 148;
+      svgEl(svg, "line", { x1: 30, y1: floorY, x2: 650, y2: floorY, class: "g-axis", "stroke-width": 2.5 });
+      for (var hx = 40; hx <= 640; hx += 24) {
+        svgEl(svg, "line", { x1: hx, y1: floorY, x2: hx - 8, y2: floorY + 8, class: "g-line" });
+      }
 
-      var bx = 220, bw = 80, bh = 50, by = floorY - bh;
-      svgEl(svg, "rect", { x: bx, y: by, width: bw, height: bh, class: "target" });
+      var bx = 130 + boxOffset + shakeX, bw = 82, bh = 50, by = floorY - bh;
+      svgEl(svg, "rect", { x: bx, y: by, width: bw, height: bh, class: "target", rx: 4 });
       svgEl(svg, "text", { x: bx + bw / 2, y: by + bh / 2 + 5, "text-anchor": "middle", class: "g-label" }).textContent = m + " kg";
 
-      drawArrow(svg, bx + bw, by + bh / 2, bx + bw + Math.min(140, F * 1.4), by + bh / 2);
-      svgEl(svg, "text", { x: bx + bw + 40, y: by + bh / 2 - 8, class: "g-label", "font-size": "14px" }).textContent = "F=" + F + "N";
+      if (boxOffset > 8 && a > 0) {
+        for (var sp = 0; sp < 3; sp++) {
+          svgEl(svg, "line", { x1: bx - 10 - sp * 10, y1: by + 12 + sp * 13, x2: bx - 32 - sp * 10, y2: by + 12 + sp * 13, class: "ray", "stroke-width": 2, opacity: 0.6 });
+        }
+      }
 
-      svgEl(svg, "text", { x: 340, y: 40, "text-anchor": "middle", class: "g-label" }).textContent = "ความเร่งขณะนี้: a = " + a.toFixed(2) + " ม./วิ² (เป้าหมาย: " + target.toFixed(1) + " ม./วิ²)";
+      drawArrow(svg, bx + bw, by + bh / 2, bx + bw + Math.min(130, F * 1.25), by + bh / 2);
+      svgEl(svg, "text", { x: bx + bw + 44, y: by + bh / 2 - 10, class: "g-label", "font-size": "14px" }).textContent = "F = " + F + " N (μ=" + mu + ")";
+
+      if (revealed) {
+        svgEl(svg, "text", { x: 340, y: 36, "text-anchor": "middle", class: "g-label" }).textContent = "ความเร่งจริง a = " + a.toFixed(2) + " ม./วิ²  (เป้า: " + hud.state.target.toFixed(1) + " ม./วิ²)";
+      } else {
+        svgEl(svg, "text", { x: 340, y: 36, "text-anchor": "middle", class: "g-label" }).textContent = "ความเร่ง a = ? ม./วิ²  (กดออกแรงดึงกล่องเพื่อทดสอบ)";
+      }
     }
 
     function pick() {
-      // Guaranteed solvable: pick candidate F and m
+      stopAnim();
       var cands = [];
       var curF = Number(fF.input.value), curM = Number(mF.input.value);
       var curMaxFriction = mu * curM * G;
@@ -1941,55 +2303,77 @@
           var maxFriction = mu * m * G;
           if (f > maxFriction) {
             var a = (f - maxFriction) / m;
-            if (a >= tr[0] && a <= tr[1]) {
-              if (Math.abs(a - curA) > tol * 1.5) {
-                cands.push(Math.round(a * 10) / 10);
-              }
+            if (a >= tr[0] && a <= tr[1] && Math.abs(a - curA) > tol * 1.5) {
+              cands.push({ target: Math.round(a * 10) / 10, f: f, m: m });
             }
           }
         }
       }
 
+      var chosen;
       if (cands.length > 0) {
-        target = cands[Math.floor(Math.random() * cands.length)];
+        chosen = cands[Math.floor(Math.random() * cands.length)];
       } else {
         var midM = (mc.min + mc.max) / 2;
-        var reqF = Math.round((tr[0] + mu * G) * midM);
-        reqF = Math.max(fc.min, Math.min(fc.max, reqF));
-        var calcA = (reqF - mu * midM * G) / midM;
-        target = Math.round(calcA * 10) / 10;
+        var reqF = Math.max(fc.min, Math.min(fc.max, Math.round((tr[0] + mu * G) * midM)));
+        chosen = { target: Math.round(((reqF - mu * midM * G) / midM) * 10) / 10, f: reqF, m: midM };
       }
-
-      attempts = 0; won = false;
-      msg.className = "game-msg";
-      info.textContent = "เป้าหมาย: ปรับแรง F และมวล m ให้เกิดความเร่ง a = " + target.toFixed(1) + " ม./วิ² (คลาดเคลื่อนไม่เกิน ±" + tol + " ม./วิ² โดย μ = " + mu + ")";
-      msg.textContent = "เลื่อนแถบ F และ m แล้วกดตรวจคำตอบ";
-      preview();
+      bestSol = { f: chosen.f, m: chosen.m };
+      revealed = false;
+      boxOffset = 0;
+      shakeX = 0;
+      hud.setMission(
+        "ด่านที่ " + hud.state.stage + "/3: ปรับแรง F และมวล m ให้ได้ความเร่ง a = " + chosen.target.toFixed(1) + " ม./วิ² (±" + tol + " ม./วิ², μ=" + mu + ")",
+        chosen.target,
+        "เลื่อนแถบ F และ m แล้วกด “🚀 ออกแรงดึงกล่อง!”"
+      );
+      renderScene();
     }
 
     checkBtn.addEventListener("click", function () {
+      stopAnim();
       var F = Number(fF.input.value), m = Number(mF.input.value);
       var maxFriction = mu * m * G;
       var a = F > maxFriction ? (F - maxFriction) / m : 0;
-      attempts += 1;
+      var target = hud.state.target;
       var diff = a - target;
-      if (Math.abs(diff) <= tol) {
-        msg.className = "game-msg ok";
-        msg.textContent = "ยอดเยี่ยม! ได้ความเร่ง a = " + a.toFixed(2) + " ม./วิ² ตรงเป้าหมายพอดี ใช้ " + attempts + " ครั้ง กด “สุ่มเป้าใหม่” เพื่อเล่นอีกรอบ";
-        if (!won) { won = true; if (opts.onWin) opts.onWin(attempts); }
-      } else {
-        msg.className = "game-msg";
-        msg.textContent = "ความเร่ง a = " + a.toFixed(2) + " ม./วิ² " + (diff < 0 ? "น้อยไป " : "มากไป ") + Math.abs(diff).toFixed(2) + " ม./วิ² ลองปรับใหม่ (ตรวจครั้งที่ " + attempts + ")";
+      var isHit = Math.abs(diff) <= tol;
+      revealed = true;
+
+      if (window.LPSound) window.LPSound.launch();
+      var winTxt = "แรงและมวลสมดุล! ได้ความเร่ง a = " + a.toFixed(2) + " ม./วิ²";
+      var missTxt = "วัดความเร่งได้ a = " + a.toFixed(2) + " ม./วิ² " + (diff < 0 ? "(น้อยไป " : "(มากไป ") + Math.abs(diff).toFixed(2) + " ม./วิ²)";
+      hud.recordAttempt(isHit, winTxt, missTxt);
+
+      if (reducedMotion()) {
+        boxOffset = a > 0 ? Math.min(260, a * 45) : 0;
+        shakeX = 0;
+        renderScene();
+        return;
       }
-      preview();
+
+      var maxSlide = a > 0 ? Math.min(260, Math.max(60, a * 45)) : 0;
+      var start = performance.now();
+      function step(now) {
+        var frac = Math.min(1, (now - start) / 500);
+        if (a <= 0) {
+          shakeX = frac < 1 ? Math.sin(frac * Math.PI * 6) * 5 : 0;
+          boxOffset = 0;
+        } else {
+          shakeX = 0;
+          boxOffset = frac * frac * maxSlide;
+        }
+        renderScene();
+        if (frac < 1) animFrame = requestAnimationFrame(step);
+        else animFrame = null;
+      }
+      animFrame = requestAnimationFrame(step);
     });
 
-    newBtn.addEventListener("click", pick);
-    container.appendChild(info);
     container.appendChild(svg);
     container.appendChild(h("div", { class: "controls" }, [fF.root, mF.root]));
-    container.appendChild(h("div", { class: "actions" }, [checkBtn, newBtn]));
-    container.appendChild(msg);
+    container.appendChild(h("div", { class: "actions" }, [checkBtn, hud.nextBtn]));
+    container.appendChild(hud.msg);
     pick();
   }
 
@@ -2001,46 +2385,79 @@
     var tr = config.targetDistance || config.targetImageDist || config.target || [22, 55];
     var fVal = config.focalLength || 15;
     var sc = config.objectDistance || { min: 18, max: 60, default: 30 };
-    var target = 0, attempts = 0, won = false;
+    var revealed = false, animFrame = null, rayFrac = 0, bestSol = { s: 30 };
 
-    var info = h("p", { class: "game-info" });
-    var msg = h("p", { class: "game-msg", "aria-live": "polite" });
+    var hud = createGameHUD(container, {
+      maxStages: 3,
+      formula: "สมการเลนส์บาง: 1/f = 1/s + 1/s'  หรือ  s = (s' × f) / (s' − f)",
+      buildHint: function (target, attempts) {
+        if (attempts >= 2) {
+          return "คำแนะนำเพิ่มเติม: ลองปรับระยะวัตถุ s ให้ใกล้เคียง " + bestSol.s + " ซม.";
+        }
+        var calcS = target > fVal ? ((target * fVal) / (target - fVal)).toFixed(1) : "มากกว่า f";
+        return "เมื่อ f = " + fVal + " ซม. และต้องการ s' = " + target.toFixed(1) + " ซม. จะได้ระยะวัตถุ s ≈ " + calcS + " ซม.";
+      },
+      onWin: opts.onWin,
+      onPickNew: pick,
+    });
+
     var svg = svgEl(null, "svg", { viewBox: "0 0 680 220", class: "plot", role: "img", "aria-label": "เกมปรับระยะวัตถุให้ภาพตกบนฉากเป้าหมาย" });
+    var sF = field("ระยะวัตถุ s =", "ซม.", { min: sc.min, max: sc.max, step: 0.5, value: sc.default }, function () { stopAnim(); revealed = false; rayFrac = 0; renderLens(0); });
+    var checkBtn = h("button", { type: "button", text: "🔦 เปิดลำแสงโฟกัส!" });
 
-    var sF = field("ระยะวัตถุ s =", "ซม.", { min: sc.min, max: sc.max, step: 0.5, value: sc.default }, function () { preview(); });
-    var checkBtn = h("button", { type: "button", text: "ตรวจคำตอบ" });
-    var newBtn = h("button", { type: "button", class: "secondary", text: "สุ่มเป้าใหม่" });
+    function stopAnim() { if (animFrame !== null) { cancelAnimationFrame(animFrame); animFrame = null; } }
 
-    function preview() {
+    function renderLens(beamProg) {
       var s = Number(sF.input.value);
       var sp = s > fVal ? (s * fVal) / (s - fVal) : 0;
+      var target = hud.state.target;
       clear(svg);
 
-      var midX = 260, midY = 110, scale = 4.0;
+      var midX = 260, midY = 115, scale = 4.0;
       svgEl(svg, "line", { x1: 20, y1: midY, x2: 660, y2: midY, class: "g-axis" });
 
-      svgEl(svg, "line", { x1: midX, y1: 20, x2: midX, y2: 200, class: "mirror" });
-      svgEl(svg, "text", { x: midX, y: 16, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "เลนส์นูน f=" + fVal + "cm";
+      svgEl(svg, "line", { x1: midX, y1: 22, x2: midX, y2: 202, class: "mirror" });
+      svgEl(svg, "text", { x: midX, y: 16, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "เลนส์นูน f=" + fVal + " ซม.";
 
       var ox = midX - s * scale;
-      svgEl(svg, "line", { x1: ox, y1: midY, x2: ox, y2: midY - 40, class: "ray" });
-      svgEl(svg, "text", { x: ox, y: midY + 18, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "s=" + s;
+      var objTopY = midY - 40;
+      svgEl(svg, "line", { x1: ox, y1: midY, x2: ox, y2: objTopY, class: "ray" });
+      svgEl(svg, "text", { x: ox, y: midY + 20, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "วัตถุ s=" + s + " ซม.";
+
+      // รังสีตกกระทบจากปลายวัตถุถึงตัวเลนส์ (เห็นได้ตอนปรับค่าโดยยังไม่เฉลยจุดตัดภาพ)
+      svgEl(svg, "line", { x1: ox, y1: objTopY, x2: midX, y2: objTopY, stroke: "var(--path)", "stroke-width": 2, "stroke-dasharray": "5 4", opacity: 0.7 });
+      svgEl(svg, "line", { x1: ox, y1: objTopY, x2: midX, y2: midY, stroke: "var(--path)", "stroke-width": 2, "stroke-dasharray": "5 4", opacity: 0.7 });
 
       var tx = midX + target * scale;
-      svgEl(svg, "rect", { x: tx - 4, y: 30, width: 8, height: 160, class: "target", "fill-opacity": 0.5 });
-      svgEl(svg, "text", { x: tx, y: 24, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "ฉาก (เป้า s'=" + target + ")";
+      svgEl(svg, "rect", { x: tx - 4, y: 30, width: 8, height: 164, class: "target", "fill-opacity": 0.55 });
+      svgEl(svg, "text", { x: tx, y: 24, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "ฉากเป้า (s'=" + target.toFixed(1) + ")";
+
+      if (!revealed) {
+        svgEl(svg, "text", { x: 470, y: 196, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "s' = ? ซม. (กดเปิดลำแสงเพื่อดูจุดโฟกัสภาพ)";
+        return;
+      }
 
       if (sp > 0) {
-        var ix = midX + sp * scale;
-        var diff = Math.abs(sp - target);
-        var blur = Math.min(14, diff * 1.5);
-        svgEl(svg, "circle", { cx: ix, cy: midY, r: Math.max(3, blur), class: "ball", opacity: diff <= tol ? 1 : 0.6 });
-        svgEl(svg, "text", { x: ix, y: midY + 28, "text-anchor": "middle", class: "g-label", "font-size": "12px" }).textContent = "ภาพ (s'=" + sp.toFixed(1) + ")";
+        var ix = Math.min(650, midX + sp * scale);
+        var curTipX1 = midX + (ix - midX) * beamProg;
+        var curTipY1 = objTopY + (midY - objTopY) * beamProg;
+        var curTipY2 = midY;
+        svgEl(svg, "line", { x1: midX, y1: objTopY, x2: curTipX1, y2: curTipY1, class: "ray", "stroke-width": 3 });
+        svgEl(svg, "line", { x1: midX, y1: midY, x2: curTipX1, y2: curTipY2, class: "ray", "stroke-width": 3 });
+
+        if (beamProg >= 0.95) {
+          var diff = Math.abs(sp - target);
+          var blur = Math.min(14, diff * 1.5);
+          svgEl(svg, "circle", { cx: ix, cy: midY, r: Math.max(4, blur), class: "ball", opacity: diff <= tol ? 1 : 0.65 });
+          svgEl(svg, "text", { x: ix, y: midY + 30, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "ภาพเกิดที่ s'=" + sp.toFixed(1) + " ซม.";
+        }
+      } else {
+        svgEl(svg, "text", { x: 460, y: midY - 12, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "s ≤ f เกิดภาพเสมือน (ไม่ตกบนฉาก)";
       }
     }
 
     function pick() {
-      // Guaranteed solvable: pick candidate s
+      stopAnim();
       var cands = [];
       var curS = Number(sF.input.value);
       var curSp = curS > fVal ? (curS * fVal) / (curS - fVal) : 0;
@@ -2048,50 +2465,66 @@
       for (var s = sc.min; s <= sc.max; s = Math.round((s + 0.5) * 10) / 10) {
         if (s > fVal + 1) {
           var sp = (s * fVal) / (s - fVal);
-          if (sp >= tr[0] && sp <= tr[1]) {
-            if (Math.abs(sp - curSp) > tol * 1.5) {
-              cands.push(Math.round(sp * 10) / 10);
-            }
+          if (sp >= tr[0] && sp <= tr[1] && Math.abs(sp - curSp) > tol * 1.5) {
+            cands.push({ target: Math.round(sp * 10) / 10, s: s });
           }
         }
       }
 
+      var chosen;
       if (cands.length > 0) {
-        target = cands[Math.floor(Math.random() * cands.length)];
+        chosen = cands[Math.floor(Math.random() * cands.length)];
       } else {
         var midS = (sc.min + sc.max) / 2;
-        target = Math.round(((midS * fVal) / (midS - fVal)) * 10) / 10;
+        chosen = { target: Math.round(((midS * fVal) / (midS - fVal)) * 10) / 10, s: midS };
       }
-
-      attempts = 0; won = false;
-      msg.className = "game-msg";
-      info.textContent = "เป้าหมาย: ฉากรับภาพตั้งอยู่ที่ s' = " + target.toFixed(1) + " ซม. (เลนส์นูน f = " + fVal + " ซม.) จงปรับระยะวัตถุ s ให้ภาพคมชัดบนฉากพอดี (คลาดเคลื่อนไม่เกิน ±" + tol + " ซม.)";
-      msg.textContent = "เลื่อนแถบระยะวัตถุ s แล้วกดตรวจคำตอบ";
-      preview();
+      bestSol = { s: chosen.s };
+      revealed = false;
+      rayFrac = 0;
+      hud.setMission(
+        "ด่านที่ " + hud.state.stage + "/3: ตั้งฉากไว้ที่ s' = " + chosen.target.toFixed(1) + " ซม. (f=" + fVal + " ซม.) ปรับระยะวัตถุ s ให้โฟกัสคมชัดบนฉาก (±" + tol + " ซม.)",
+        chosen.target,
+        "เลื่อนแถบระยะวัตถุ s แล้วกด “🔦 เปิดลำแสงโฟกัส!”"
+      );
+      renderLens(0);
     }
 
     checkBtn.addEventListener("click", function () {
+      stopAnim();
       var s = Number(sF.input.value);
       var sp = s > fVal ? (s * fVal) / (s - fVal) : 0;
-      attempts += 1;
+      var target = hud.state.target;
       var diff = sp - target;
-      if (Math.abs(diff) <= tol) {
-        msg.className = "game-msg ok";
-        msg.textContent = "โฟกัสคมชัด! s' = " + sp.toFixed(1) + " ซม. ภาพตกบนฉากพอดี ใช้ " + attempts + " ครั้ง กด “สุ่มเป้าใหม่” เพื่อเล่นอีกรอบ";
-        if (!won) { won = true; if (opts.onWin) opts.onWin(attempts); }
-      } else {
-        msg.className = "game-msg";
-        msg.textContent = "ภาพตกที่ s' = " + sp.toFixed(1) + " ซม. " + (diff < 0 ? "ตกหน้าฉากไป " : "ตกหลังฉากไป ") + Math.abs(diff).toFixed(1) + " ซม. ลองปรับ s ใหม่ (ตรวจครั้งที่ " + attempts + ")";
+      var isHit = s > fVal && Math.abs(diff) <= tol;
+      revealed = true;
+
+      if (window.LPSound) window.LPSound.launch();
+      var winTxt = "โฟกัสคมชัด! ภาพตกบนฉากที่ s' = " + sp.toFixed(1) + " ซม.";
+      var missTxt = s <= fVal
+        ? "ระยะวัตถุ s ≤ f (" + fVal + " ซม.) ไม่เกิดภาพจริงบนฉาก"
+        : "ภาพตกที่ s' = " + sp.toFixed(1) + " ซม. " + (diff < 0 ? "(ตกหน้าฉาก " : "(ตกหลังฉาก ") + Math.abs(diff).toFixed(1) + " ซม.)";
+      hud.recordAttempt(isHit, winTxt, missTxt);
+
+      if (reducedMotion()) {
+        rayFrac = 1;
+        renderLens(1);
+        return;
       }
-      preview();
+      var start = performance.now();
+      function step(now) {
+        var frac = Math.min(1, (now - start) / 420);
+        rayFrac = frac;
+        renderLens(frac);
+        if (frac < 1) animFrame = requestAnimationFrame(step);
+        else animFrame = null;
+      }
+      animFrame = requestAnimationFrame(step);
     });
 
-    newBtn.addEventListener("click", pick);
-    container.appendChild(info);
     container.appendChild(svg);
     container.appendChild(h("div", { class: "controls single" }, [sF.root]));
-    container.appendChild(h("div", { class: "actions" }, [checkBtn, newBtn]));
-    container.appendChild(msg);
+    container.appendChild(h("div", { class: "actions" }, [checkBtn, hud.nextBtn]));
+    container.appendChild(hud.msg);
     pick();
   }
 
@@ -2103,39 +2536,77 @@
     var tr = config.targetPressure || config.target || [120, 320];
     var tc = config.temperature || { min: 200, max: 600, default: 300 };
     var vc = config.volume || { min: 2, max: 10, step: 0.5, default: 5 };
-    var R = 8.314, target = 0, attempts = 0, won = false;
+    var R = 8.314;
+    var revealed = false, animFrame = null, bestSol = { t: 300, v: 5 };
 
-    var info = h("p", { class: "game-info" });
-    var msg = h("p", { class: "game-msg", "aria-live": "polite" });
+    var hud = createGameHUD(container, {
+      maxStages: 3,
+      formula: "กฎแก๊สอุดมคติ (n = 1 โมล, R = 8.314): P = (8.314 × T) / V",
+      buildHint: function (target, attempts) {
+        if (attempts >= 2) {
+          return "คำแนะนำเพิ่มเติม: ลองตั้งอุณหภูมิ T ≈ " + bestSol.t + " K และปริมาตร V ≈ " + bestSol.v + " ลิตร";
+        }
+        return "เพิ่มอุณหภูมิ T หรือบีบปริมาตร V ให้เล็กลง จะทำให้ความดัน P สูงขึ้น (เป้า " + target + " kPa)";
+      },
+      onWin: opts.onWin,
+      onPickNew: pick,
+    });
+
     var svg = svgEl(null, "svg", { viewBox: "0 0 680 200", class: "plot", role: "img", "aria-label": "เกมปรับอุณหภูมิและปริมาตรเพื่อให้ได้ความดันเป้าหมาย" });
+    var tF = field("อุณหภูมิ T =", "เคลวิน (K)", { min: tc.min, max: tc.max, step: 5, value: tc.default }, function () { stopAnim(); revealed = false; renderPiston(0); });
+    var vF = field("ปริมาตร V =", "ลิตร", { min: vc.min, max: vc.max, step: 0.5, value: vc.default }, function () { stopAnim(); revealed = false; renderPiston(0); });
+    var checkBtn = h("button", { type: "button", text: "🔥 อัดความดันตรวจวัด!" });
 
-    var tF = field("อุณหภูมิ T =", "เคลวิน (K)", { min: tc.min, max: tc.max, step: 5, value: tc.default }, function () { preview(); });
-    var vF = field("ปริมาตร V =", "ลิตร", { min: vc.min, max: vc.max, step: 0.5, value: vc.default }, function () { preview(); });
-    var checkBtn = h("button", { type: "button", text: "ตรวจคำตอบ" });
-    var newBtn = h("button", { type: "button", class: "secondary", text: "สุ่มเป้าใหม่" });
+    function stopAnim() { if (animFrame !== null) { cancelAnimationFrame(animFrame); animFrame = null; } }
 
-    function preview() {
+    function renderPiston(sweepFrac) {
       var T = Number(tF.input.value), V = Number(vF.input.value);
       var P = (1 * R * T) / V;
+      var target = hud.state.target;
       clear(svg);
 
-      var cx = 80, cy = 40, ch = 100, maxW = 380;
+      var cx = 80, cy = 42, ch = 96, maxW = 360;
       var px = cx + (V / 10) * maxW;
 
-      svgEl(svg, "polyline", { points: (cx + maxW + 20) + "," + cy + " " + cx + "," + cy + " " + cx + "," + (cy + ch) + " " + (cx + maxW + 20) + "," + (cy + ch), class: "g-axis", fill: "none", "stroke-width": 2 });
+      svgEl(svg, "polyline", { points: (cx + maxW + 20) + "," + cy + " " + cx + "," + cy + " " + cx + "," + (cy + ch) + " " + (cx + maxW + 20) + "," + (cy + ch), class: "g-axis", fill: "none", "stroke-width": 2.5 });
       svgEl(svg, "rect", { x: px, y: cy + 2, width: 12, height: ch - 4, class: "target" });
+      svgEl(svg, "line", { x1: px + 12, y1: cy + ch / 2, x2: px + 56, y2: cy + ch / 2, class: "g-axis", "stroke-width": 4 });
 
-      svgEl(svg, "text", { x: 550, y: 50, "text-anchor": "middle", class: "g-label" }).textContent = "ความดัน P (เป้า: " + target + " kPa)";
-      svgEl(svg, "circle", { cx: 550, cy: 105, r: 42, class: "target", "fill-opacity": 0.2 });
-      var angCur = -Math.PI * 0.75 + (Math.min(P, 500) / 500) * (Math.PI * 1.5);
-      var angTar = -Math.PI * 0.75 + (Math.min(target, 500) / 500) * (Math.PI * 1.5);
-      svgEl(svg, "line", { x1: 550, y1: 105, x2: 550 + 36 * Math.cos(angTar), y2: 105 + 36 * Math.sin(angTar), class: "normal", "stroke-width": 3 });
-      svgEl(svg, "line", { x1: 550, y1: 105, x2: 550 + 34 * Math.cos(angCur), y2: 105 + 34 * Math.sin(angCur), class: "ray" });
-      svgEl(svg, "text", { x: 550, y: 175, "text-anchor": "middle", class: "g-label", "font-size": "15px" }).textContent = "ขณะนี้ " + P.toFixed(1) + " kPa";
+      // อนุภาคแก๊สจำลองภายในกระบอกสูบ
+      var dots = 10;
+      for (var i = 0; i < dots; i++) {
+        var gx = cx + 14 + (((i * 47) % 100) / 100) * Math.max(20, px - cx - 26);
+        var gy = cy + 16 + (((i * 31) % 70) / 100) * (ch - 32);
+        svgEl(svg, "circle", { cx: gx, cy: gy, r: 3.5, class: "ball", opacity: 0.7 });
+      }
+
+      // เปลวไฟแสดงอุณหภูมิที่ตั้งไว้
+      var flameMid = cx + (px - cx) / 2;
+      var flameH = 8 + (T / 600) * 20;
+      svgEl(svg, "polygon", { points: (flameMid - 18) + "," + (cy + ch + 18) + " " + flameMid + "," + (cy + ch + 18 - flameH) + " " + (flameMid + 18) + "," + (cy + ch + 18), fill: "orange", stroke: "var(--ball)" });
+      svgEl(svg, "text", { x: flameMid, y: cy + ch + 36, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "T=" + T + " K, V=" + V + " L";
+
+      // เกจวัดความดัน
+      svgEl(svg, "text", { x: 560, y: 40, "text-anchor": "middle", class: "g-label" }).textContent = "เกจวัด (เป้า: " + target + " kPa)";
+      svgEl(svg, "circle", { cx: 560, cy: 100, r: 44, class: "target", "fill-opacity": 0.18 });
+      var angRest = -Math.PI * 0.75;
+      var angTar = angRest + (Math.min(target, 500) / 500) * (Math.PI * 1.5);
+      var angCur = angRest + (Math.min(P, 500) / 500) * (Math.PI * 1.5);
+      var shownAng = revealed ? angRest + (angCur - angRest) * sweepFrac : angRest;
+
+      svgEl(svg, "line", { x1: 560, y1: 100, x2: 560 + 38 * Math.cos(angTar), y2: 100 + 38 * Math.sin(angTar), class: "normal", "stroke-width": 3 });
+      svgEl(svg, "line", { x1: 560, y1: 100, x2: 560 + 34 * Math.cos(shownAng), y2: 100 + 34 * Math.sin(shownAng), class: "ray", "stroke-width": 3.5 });
+      svgEl(svg, "circle", { cx: 560, cy: 100, r: 4, class: "mark" });
+
+      if (revealed) {
+        svgEl(svg, "text", { x: 560, y: 172, "text-anchor": "middle", class: "g-label", "font-size": "15px" }).textContent = "วัดได้ " + P.toFixed(1) + " kPa";
+      } else {
+        svgEl(svg, "text", { x: 560, y: 172, "text-anchor": "middle", class: "g-label", "font-size": "14px" }).textContent = "P = ? kPa (รออัดวัด)";
+      }
     }
 
     function pick() {
-      // Guaranteed solvable: pick candidate T and V
+      stopAnim();
       var cands = [];
       var curT = Number(tF.input.value), curV = Number(vF.input.value);
       var curP = (1 * R * curT) / curV;
@@ -2143,51 +2614,62 @@
       for (var t = tc.min; t <= tc.max; t += 5) {
         for (var v = vc.min; v <= vc.max; v = Math.round((v + 0.5) * 10) / 10) {
           var P = (1 * R * t) / v;
-          if (P >= tr[0] && P <= tr[1]) {
-            if (Math.abs(P - curP) > tol * 1.5) {
-              cands.push(Math.round(P));
-            }
+          if (P >= tr[0] && P <= tr[1] && Math.abs(P - curP) > tol * 1.5) {
+            cands.push({ target: Math.round(P), t: t, v: v });
           }
         }
       }
 
+      var chosen;
       if (cands.length > 0) {
-        target = cands[Math.floor(Math.random() * cands.length)];
+        chosen = cands[Math.floor(Math.random() * cands.length)];
       } else {
         var midT = (tc.min + tc.max) / 2;
         var midV = (vc.min + vc.max) / 2;
-        target = Math.round((1 * R * midT) / midV);
+        chosen = { target: Math.round((1 * R * midT) / midV), t: midT, v: midV };
       }
-
-      attempts = 0; won = false;
-      msg.className = "game-msg";
-      info.textContent = "เป้าหมาย: ปรับอุณหภูมิ T และปริมาตร V ของแก๊ส 1 โมล ให้ได้ความดัน P = " + target + " kPa (คลาดเคลื่อนไม่เกิน ±" + tol + " kPa)";
-      msg.textContent = "ปรับ T และ V แล้วกดตรวจคำตอบ";
-      preview();
+      bestSol = { t: chosen.t, v: chosen.v };
+      revealed = false;
+      hud.setMission(
+        "ด่านที่ " + hud.state.stage + "/3: ปรับ T และ V (n=1 โมล) ให้ได้ความดัน P = " + chosen.target + " kPa (±" + tol + " kPa)",
+        chosen.target,
+        "ปรับอุณหภูมิ T และปริมาตร V แล้วกด “🔥 อัดความดันตรวจวัด!”"
+      );
+      renderPiston(0);
     }
 
     checkBtn.addEventListener("click", function () {
+      stopAnim();
       var T = Number(tF.input.value), V = Number(vF.input.value);
       var P = (1 * R * T) / V;
-      attempts += 1;
+      var target = hud.state.target;
       var diff = P - target;
-      if (Math.abs(diff) <= tol) {
-        msg.className = "game-msg ok";
-        msg.textContent = "ถูกต้อง! ความดัน P = " + P.toFixed(1) + " kPa เข้าเป้าหมายพอดี ใช้ " + attempts + " ครั้ง กด “สุ่มเป้าใหม่” เพื่อเล่นอีกรอบ";
-        if (!won) { won = true; if (opts.onWin) opts.onWin(attempts); }
-      } else {
-        msg.className = "game-msg";
-        msg.textContent = "ความดัน P = " + P.toFixed(1) + " kPa " + (diff < 0 ? "ต่ำไป " : "สูงไป ") + Math.abs(diff).toFixed(1) + " kPa ลองปรับ T หรือ V ใหม่ (ตรวจครั้งที่ " + attempts + ")";
+      var isHit = Math.abs(diff) <= tol;
+      revealed = true;
+
+      if (window.LPSound) window.LPSound.launch();
+      var winTxt = "ควบคุมความดันสำเร็จ! วัดได้ P = " + P.toFixed(1) + " kPa";
+      var missTxt = "ความดันที่วัดได้ P = " + P.toFixed(1) + " kPa " + (diff < 0 ? "(ต่ำไป " : "(สูงไป ") + Math.abs(diff).toFixed(1) + " kPa)";
+      hud.recordAttempt(isHit, winTxt, missTxt);
+
+      if (reducedMotion()) {
+        renderPiston(1);
+        return;
       }
-      preview();
+      var start = performance.now();
+      function step(now) {
+        var frac = Math.min(1, (now - start) / 450);
+        renderPiston(frac);
+        if (frac < 1) animFrame = requestAnimationFrame(step);
+        else animFrame = null;
+      }
+      animFrame = requestAnimationFrame(step);
     });
 
-    newBtn.addEventListener("click", pick);
-    container.appendChild(info);
     container.appendChild(svg);
     container.appendChild(h("div", { class: "controls" }, [tF.root, vF.root]));
-    container.appendChild(h("div", { class: "actions" }, [checkBtn, newBtn]));
-    container.appendChild(msg);
+    container.appendChild(h("div", { class: "actions" }, [checkBtn, hud.nextBtn]));
+    container.appendChild(hud.msg);
     pick();
   }
 
@@ -2199,44 +2681,75 @@
     var tr = config.targetEk || config.targetEnergy || config.target || [0.6, 3.2];
     var W0 = config.workFunction || 2.2;
     var fc = config.frequency || { min: 4, max: 16, step: 0.2, default: 7 };
-    var hConst = 0.4136, target = 0, attempts = 0, won = false;
+    var hConst = 0.4136;
+    var revealed = false, animFrame = null, bestSol = { f: 10 };
 
-    var info = h("p", { class: "game-info" });
-    var msg = h("p", { class: "game-msg", "aria-live": "polite" });
+    var hud = createGameHUD(container, {
+      maxStages: 3,
+      formula: "โฟโตอิเล็กทริก: Ek = h·f − W₀  (h = 0.4136, ดังนั้น f = (Ek + W₀) / 0.4136)",
+      buildHint: function (target, attempts) {
+        if (attempts >= 2) {
+          return "คำแนะนำเพิ่มเติม: ลองปรับความถี่แสง f ให้ใกล้เคียง " + bestSol.f + " ×10¹⁴ Hz";
+        }
+        var needF = ((target + W0) / hConst).toFixed(1);
+        return "แผ่นโลหะนี้มี W₀ = " + W0 + " eV การจะได้ Ek = " + target.toFixed(1) + " eV ต้องใช้ f ≈ " + needF + " ×10¹⁴ Hz";
+      },
+      onWin: opts.onWin,
+      onPickNew: pick,
+    });
+
     var svg = svgEl(null, "svg", { viewBox: "0 0 680 200", class: "plot", role: "img", "aria-label": "ห้องปฏิบัติการควอนตัม ปรับความถี่แสงให้ได้พลังงานจลน์ตามเป้า" });
+    var fF = field("ความถี่แสง f =", "×10¹⁴ Hz", { min: fc.min, max: fc.max, step: 0.2, value: fc.default }, function () { stopAnim(); revealed = false; renderQuantum(0); });
+    var checkBtn = h("button", { type: "button", text: "⚡ ยิงลำแสงโฟตอน!" });
 
-    var fF = field("ความถี่แสง f =", "×10¹⁴ Hz", { min: fc.min, max: fc.max, step: 0.2, value: fc.default }, function () { preview(); });
-    var checkBtn = h("button", { type: "button", text: "ตรวจคำตอบ" });
-    var newBtn = h("button", { type: "button", class: "secondary", text: "สุ่มเป้าใหม่" });
+    function stopAnim() { if (animFrame !== null) { cancelAnimationFrame(animFrame); animFrame = null; } }
 
-    function preview() {
+    function renderQuantum(beamFrac) {
       var f = Number(fF.input.value);
       var E = hConst * f;
       var Ek = Math.max(0, E - W0);
+      var target = hud.state.target;
       clear(svg);
 
       var lightColor = f < 6 ? "#ff4433" : f < 8.5 ? "#22cc55" : f < 11 ? "#3377ff" : "#9933ff";
 
-      svgEl(svg, "rect", { x: 100, y: 30, width: 480, height: 130, rx: 14, class: "g-line", fill: "none", "stroke-width": 2 });
-      svgEl(svg, "rect", { x: 140, y: 45, width: 14, height: 100, class: "target" });
-      svgEl(svg, "text", { x: 147, y: 165, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "W₀ = " + W0 + " eV";
+      svgEl(svg, "rect", { x: 100, y: 28, width: 480, height: 132, rx: 14, class: "g-line", fill: "none", "stroke-width": 2 });
+      svgEl(svg, "rect", { x: 140, y: 44, width: 14, height: 100, class: "target" });
+      svgEl(svg, "text", { x: 147, y: 180, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "W₀ = " + W0 + " eV";
 
-      for (var i = 0; i < 3; i++) {
-        svgEl(svg, "line", { x1: 60, y1: 65 + i * 25, x2: 140, y2: 75 + i * 25, stroke: lightColor, "stroke-width": 3, "stroke-dasharray": "6 4" });
+      // แหล่งกำเนิดเลเซอร์ด้านซ้าย
+      svgEl(svg, "rect", { x: 40, y: 76, width: 24, height: 34, rx: 4, fill: lightColor, stroke: "var(--ink)", "stroke-width": 1.5 });
+
+      if (revealed) {
+        var reachX = 64 + (140 - 64) * Math.min(1, beamFrac * 2);
+        for (var i = 0; i < 3; i++) {
+          svgEl(svg, "line", { x1: 64, y1: 65 + i * 24, x2: reachX, y2: 73 + i * 22, stroke: lightColor, "stroke-width": 3, "stroke-dasharray": "6 4" });
+        }
+        if (E > W0 && beamFrac > 0.35) {
+          var eTravel = ((beamFrac - 0.35) / 0.65);
+          for (var e = 0; e < 3; e++) {
+            var ex = 158 + eTravel * 120;
+            svgEl(svg, "circle", { cx: ex, cy: 65 + e * 28, r: 4.5, class: "charge-neg" });
+          }
+        }
       }
 
       svgEl(svg, "rect", { x: 300, y: 65, width: 220, height: 26, class: "g-axis", fill: "none" });
-      var fillW = Math.max(0, Math.min(220, (Ek / 4) * 220));
+      var fillW = revealed ? Math.max(0, Math.min(220, (Ek / 4) * 220)) * beamFrac : 0;
       svgEl(svg, "rect", { x: 300, y: 65, width: fillW, height: 26, class: "ball" });
       var tarX = 300 + Math.min(220, (target / 4) * 220);
-      svgEl(svg, "line", { x1: tarX, y1: 55, x2: tarX, y2: 100, class: "ray", "stroke-width": 3 });
-      svgEl(svg, "text", { x: tarX, y: 50, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "เป้า: " + target.toFixed(1) + " eV";
+      svgEl(svg, "line", { x1: tarX, y1: 52, x2: tarX, y2: 102, class: "ray", "stroke-width": 3 });
+      svgEl(svg, "text", { x: tarX, y: 46, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "เป้า: " + target.toFixed(1) + " eV";
 
-      svgEl(svg, "text", { x: 410, y: 130, "text-anchor": "middle", class: "g-label" }).textContent = "Ek = " + (Ek > 0 ? Ek.toFixed(2) + " eV" : "0 eV (ยังไม่หลุด)");
+      if (revealed) {
+        svgEl(svg, "text", { x: 410, y: 132, "text-anchor": "middle", class: "g-label" }).textContent = "Ek = " + (Ek > 0 ? Ek.toFixed(2) + " eV" : "0 eV (ยังไม่หลุด)");
+      } else {
+        svgEl(svg, "text", { x: 410, y: 132, "text-anchor": "middle", class: "g-label" }).textContent = "Ek = ? eV  (กดยิงโฟตอนเพื่อทดลอง)";
+      }
     }
 
     function pick() {
-      // Guaranteed solvable: pick candidate f
+      stopAnim();
       var cands = [];
       var curF = Number(fF.input.value);
       var curEk = Math.max(0, hConst * curF - W0);
@@ -2245,55 +2758,64 @@
         var E = hConst * f;
         if (E > W0) {
           var Ek = E - W0;
-          if (Ek >= tr[0] && Ek <= tr[1]) {
-            if (Math.abs(Ek - curEk) > tol * 1.5) {
-              cands.push(Math.round(Ek * 10) / 10);
-            }
+          if (Ek >= tr[0] && Ek <= tr[1] && Math.abs(Ek - curEk) > tol * 1.5) {
+            cands.push({ target: Math.round(Ek * 10) / 10, f: f });
           }
         }
       }
 
+      var chosen;
       if (cands.length > 0) {
-        target = cands[Math.floor(Math.random() * cands.length)];
+        chosen = cands[Math.floor(Math.random() * cands.length)];
       } else {
         var midF = (fc.min + fc.max) / 2;
-        target = Math.round(Math.max(0.4, hConst * midF - W0) * 10) / 10;
+        chosen = { target: Math.round(Math.max(0.4, hConst * midF - W0) * 10) / 10, f: midF };
       }
-
-      attempts = 0; won = false;
-      msg.className = "game-msg";
-      info.textContent = "เป้าหมาย: แผ่นโลหะมี W₀ = " + W0 + " eV จงปรับความถี่ f ให้ได้ Ek = " + target.toFixed(1) + " eV (คลาดเคลื่อนไม่เกิน ±" + tol + " eV)";
-      msg.textContent = "เลื่อนความถี่ f แล้วกดตรวจคำตอบ";
-      preview();
+      bestSol = { f: chosen.f };
+      revealed = false;
+      hud.setMission(
+        "ด่านที่ " + hud.state.stage + "/3: แผ่นโลหะ W₀ = " + W0 + " eV ปรับความถี่ f ให้ได้ Ek = " + chosen.target.toFixed(1) + " eV (±" + tol + " eV)",
+        chosen.target,
+        "เลื่อนความถี่แสง f แล้วกด “⚡ ยิงลำแสงโฟตอน!”"
+      );
+      renderQuantum(0);
     }
 
     checkBtn.addEventListener("click", function () {
+      stopAnim();
       var f = Number(fF.input.value);
       var E = hConst * f;
       var Ek = Math.max(0, E - W0);
-      attempts += 1;
+      var target = hud.state.target;
       var diff = Ek - target;
-      if (Math.abs(diff) <= tol) {
-        msg.className = "game-msg ok";
-        msg.textContent = "สำเร็จ! ได้พลังงานจลน์ Ek = " + Ek.toFixed(2) + " eV ตรงเป้าหมายพอดี ใช้ " + attempts + " ครั้ง กด “สุ่มเป้าใหม่” เพื่อเล่นอีกรอบ";
-        if (!won) { won = true; if (opts.onWin) opts.onWin(attempts); }
-      } else {
-        msg.className = "game-msg";
-        if (E <= W0) {
-          msg.textContent = "พลังงานโฟตอน hf = " + E.toFixed(2) + " eV ยังไม่ชนะฟังก์ชันงาน W₀ = " + W0 + " eV ทำให้อิเล็กตรอนไม่หลุด ลองเพิ่มความถี่ f (ตรวจครั้งที่ " + attempts + ")";
-        } else {
-          msg.textContent = "ได้ Ek = " + Ek.toFixed(2) + " eV " + (diff < 0 ? "น้อยไป " : "มากไป ") + Math.abs(diff).toFixed(2) + " eV ลองปรับ f ใหม่ (ตรวจครั้งที่ " + attempts + ")";
-        }
+      var isHit = E > W0 && Math.abs(diff) <= tol;
+      revealed = true;
+
+      if (window.LPSound) window.LPSound.launch();
+      var winTxt = "ยิงโฟตอนสำเร็จ! วัดพลังงานจลน์ได้ Ek = " + Ek.toFixed(2) + " eV";
+      var missTxt = E <= W0
+        ? "พลังงานโฟตอน hf = " + E.toFixed(2) + " eV ยังไม่ชนะ W₀ = " + W0 + " eV (อิเล็กตรอนไม่หลุด)"
+        : "ได้พลังงานจลน์ Ek = " + Ek.toFixed(2) + " eV " + (diff < 0 ? "(น้อยไป " : "(มากไป ") + Math.abs(diff).toFixed(2) + " eV)";
+      hud.recordAttempt(isHit, winTxt, missTxt);
+
+      if (reducedMotion()) {
+        renderQuantum(1);
+        return;
       }
-      preview();
+      var start = performance.now();
+      function step(now) {
+        var frac = Math.min(1, (now - start) / 450);
+        renderQuantum(frac);
+        if (frac < 1) animFrame = requestAnimationFrame(step);
+        else animFrame = null;
+      }
+      animFrame = requestAnimationFrame(step);
     });
 
-    newBtn.addEventListener("click", pick);
-    container.appendChild(info);
     container.appendChild(svg);
     container.appendChild(h("div", { class: "controls single" }, [fF.root]));
-    container.appendChild(h("div", { class: "actions" }, [checkBtn, newBtn]));
-    container.appendChild(msg);
+    container.appendChild(h("div", { class: "actions" }, [checkBtn, hud.nextBtn]));
+    container.appendChild(hud.msg);
     pick();
   }
 

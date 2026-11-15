@@ -41,10 +41,12 @@
       anim: !!p.anim,
       game: !!p.game,
       quiz: typeof p.quiz === "number" ? p.quiz : null,
+      stars: typeof p.stars === "number" && p.stars > 0 ? Math.min(3, p.stars) : (p.game ? 1 : 0),
+      gameScore: typeof p.gameScore === "number" ? p.gameScore : 0,
     };
   }
 
-  function setProgress(key, value) {
+  function setProgress(key, value, extra) {
     try {
       var all = readAll();
       var p = all[slug] || {};
@@ -53,6 +55,14 @@
       } else {
         p[key] = value;
       }
+      if (extra && typeof extra === "object") {
+        if (typeof extra.stars === "number") {
+          p.stars = Math.max(typeof p.stars === "number" ? p.stars : 0, Math.min(3, Math.max(1, Math.round(extra.stars))));
+        }
+        if (typeof extra.gameScore === "number") {
+          p.gameScore = Math.max(typeof p.gameScore === "number" ? p.gameScore : 0, Math.round(extra.gameScore));
+        }
+      }
       all[slug] = p;
       localStorage.setItem(STORE_KEY, JSON.stringify(all));
     } catch (e) {
@@ -60,6 +70,7 @@
     }
     // ล็อกอินอยู่: ส่งขึ้นเซิร์ฟเวอร์ด้วย (ผลควิซถูกบันทึกฝั่งเซิร์ฟเวอร์อยู่แล้วตอนตรวจ)
     if (window.LPAuth && window.LPAuth.user) window.LPAuth.pushProgress(slug);
+    document.dispatchEvent(new CustomEvent("lp:progress-updated", { detail: { slug: slug, key: key } }));
   }
 
   var statusEls = {};
@@ -71,7 +82,7 @@
     var map = {
       video: p.video ? "ศึกษาแล้ว" : "",
       anim: p.anim ? "ทดลองแล้ว" : "",
-      game: p.game ? "ผ่านกิจกรรมแล้ว" : "",
+      game: p.game ? "ผ่านกิจกรรมแล้ว " + "⭐".repeat(Math.max(1, Math.min(3, p.stars || 3))) : "",
       quiz: p.quiz !== null ? "คะแนนสูงสุด " + p.quiz + "%" : "",
     };
     for (var k in statusEls) {
@@ -178,11 +189,20 @@
     var box = h("div", { class: "sim" });
     var g = lesson.game;
     var game = g && window.LPEngines && window.LPEngines.games[g.template];
+    var sessionNotified = false;
     if (game) {
       game(box, g.config, {
-        onWin: function () {
-          setProgress("game", true);
+        onWin: function (attempts, stars, score) {
+          var earnedStars = Math.max(1, Math.min(3, stars || (attempts === 1 ? 3 : attempts === 2 ? 2 : 1)));
+          setProgress("game", true, { stars: earnedStars, gameScore: score || 100 });
           paintStatus();
+          if (!sessionNotified) {
+            sessionNotified = true;
+            if (window.LPGamify) {
+              window.LPGamify.confetti();
+              window.LPGamify.showToast("ผ่านภารกิจฝึกทักษะ!", "ได้รับ " + "⭐".repeat(earnedStars) + " และคะแนนสะสม XP", "🎮");
+            }
+          }
         },
       });
     } else {
@@ -334,6 +354,16 @@
       retry.hidden = false;
       setProgress("quiz", data.percent);
       paintStatus();
+      if (data.passed) {
+        if (window.LPSound) window.LPSound.fanfare();
+        if (window.LPGamify) {
+          window.LPGamify.confetti();
+          var bonusText = data.percent === 100 ? "รับโบนัส +150 XP (เต็ม 100%!)" : "รับโบนัส +100 XP สะสมเข้าโปรไฟล์";
+          window.LPGamify.showToast("ผ่านการประเมินผล! (" + data.percent + "%)", bonusText, "🏆");
+        }
+      } else {
+        if (window.LPSound) window.LPSound.miss();
+      }
     }
 
     form.addEventListener("submit", function (e) {
