@@ -1033,12 +1033,26 @@
     return { nav: nav, pills: pills };
   }
 
+  var LAST_LESSON_KEY = "learnphysics.last_lesson.v1";
   var activeHashListener = null;
+  var activeKeyListener = null;
 
   // ------------------------------------------------------------------ หน้าหลัก
   function render(lesson) {
     currentLesson = lesson;
     document.title = lesson.title + " | LearnPhysics";
+    try {
+      localStorage.setItem(
+        LAST_LESSON_KEY,
+        JSON.stringify({
+          slug: lesson.slug || slug,
+          title: lesson.title || "",
+          chapter: lesson.chapter ? lesson.chapter.title : "",
+          category: lesson.category || "",
+          ts: Date.now(),
+        })
+      );
+    } catch (e) {}
     root.textContent = "";
 
     var crumbs = h("nav", { class: "crumbs", "aria-label": "ตำแหน่งปัจจุบัน" }, [
@@ -1147,6 +1161,25 @@
     };
     window.addEventListener("hashchange", activeHashListener);
     setActiveTab(resolveTabFromHash(location.hash));
+
+    if (activeKeyListener) {
+      document.removeEventListener("keydown", activeKeyListener);
+    }
+    activeKeyListener = function (e) {
+      if (!e || e.defaultPrevented || e.isComposing) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      var target = e.target;
+      if (target) {
+        var tag = target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable) return;
+      }
+      var tabMap = { "1": "study", "2": "lab", "3": "game", "4": "quiz", "5": "all" };
+      var nextTab = tabMap[e.key];
+      if (nextTab) {
+        setActiveTab(nextTab);
+      }
+    };
+    document.addEventListener("keydown", activeKeyListener);
 
     // แถบปุ่มนำทาง บทก่อนหน้า / บทถัดไป อยู่ล่างสุดของหน้าบทเรียน
     var navContainer = h("div", { class: "lesson-nav-wrap" });

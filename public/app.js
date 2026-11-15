@@ -10,6 +10,64 @@
   var M = { l: 46, r: 14, t: 14, b: 38 };
   var NS = "http://www.w3.org/2000/svg";
 
+  var LAST_LESSON_KEY = "learnphysics.last_lesson.v1";
+
+  function renderContinueLearningPill() {
+    var heroText = document.querySelector(".hero-text");
+    if (!heroText) return;
+    var existing = heroText.querySelector(".continue-learning-pill");
+    if (!window.LPAuth || !window.LPAuth.user) {
+      if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+      return;
+    }
+    var last = null;
+    try {
+      last = JSON.parse(localStorage.getItem(LAST_LESSON_KEY));
+    } catch (e) {
+      last = null;
+    }
+    if (!last || !last.slug || !/^[a-z0-9-]+$/.test(last.slug)) {
+      if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+      return;
+    }
+    if (existing) {
+      existing.href = "/lesson?s=" + encodeURIComponent(last.slug);
+      var existingTitle = existing.querySelector(".continue-pill-title");
+      if (existingTitle) existingTitle.textContent = last.title || last.slug;
+      return;
+    }
+    var pill = document.createElement("a");
+    pill.className = "continue-learning-pill";
+    pill.href = "/lesson?s=" + encodeURIComponent(last.slug);
+
+    var label = document.createElement("span");
+    label.className = "continue-pill-label";
+    label.textContent = "▶ เรียนต่อ:";
+
+    var title = document.createElement("span");
+    title.className = "continue-pill-title";
+    title.textContent = last.title || last.slug;
+
+    var arrow = document.createElement("span");
+    arrow.className = "continue-pill-arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    arrow.textContent = "→";
+
+    pill.appendChild(label);
+    pill.appendChild(title);
+    pill.appendChild(arrow);
+
+    var actions = heroText.querySelector(".hero-actions");
+    if (actions && actions.parentNode === heroText) {
+      heroText.insertBefore(pill, actions.nextSibling);
+    } else {
+      heroText.appendChild(pill);
+    }
+  }
+
+  renderContinueLearningPill();
+  document.addEventListener("lp:auth-ready", renderContinueLearningPill);
+
   var svg = document.getElementById("plot");
   var angleIn = document.getElementById("angle");
   var speedIn = document.getElementById("speed");

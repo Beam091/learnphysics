@@ -471,6 +471,14 @@
     badge.title = st.rankTitle + " (" + st.totalXP + " XP • ⭐ " + st.totalStars + " ดวง)";
   }
 
+  function createAvatarFallback(user) {
+    var raw = (user && (user.name || user.email)) || "U";
+    var ch = String(raw).trim().charAt(0) || "U";
+    var span = el("span", "auth-avatar auth-avatar-fallback", ch.toUpperCase());
+    span.setAttribute("aria-hidden", "true");
+    return span;
+  }
+
   function renderLoggedIn(user) {
     if (!slot) return;
     slot.textContent = "";
@@ -488,7 +496,12 @@
       img.referrerPolicy = "no-referrer";
       img.width = 28;
       img.height = 28;
+      img.addEventListener("error", function () {
+        if (img.parentNode) img.parentNode.replaceChild(createAvatarFallback(user), img);
+      });
       wrap.appendChild(img);
+    } else {
+      wrap.appendChild(createAvatarFallback(user));
     }
     wrap.appendChild(el("span", "auth-name", user.name || user.email));
     var privacy = el("a", "auth-link", "บัญชี");

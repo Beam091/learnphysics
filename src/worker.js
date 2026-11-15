@@ -35,7 +35,24 @@ const PUBLISHED_LESSONS_SQL = `
   ORDER BY l.sort_order, l.id
 `;
 
-const json = (data, init) => Response.json(data, init);
+const SECURITY_HEADERS = {
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "x-frame-options": "SAMEORIGIN",
+};
+
+function mergeSecurityHeaders(initHeaders) {
+  const headers = new Headers(initHeaders);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+    if (!headers.has(k)) headers.set(k, v);
+  }
+  return headers;
+}
+
+const json = (data, init) => {
+  const opts = init || {};
+  return Response.json(data, { ...opts, headers: mergeSecurityHeaders(opts.headers) });
+};
 
 function parseJson(text, fallback) {
   try {
@@ -73,19 +90,46 @@ export function groupCatalog(rows, lessonRows = []) {
   return categories;
 }
 
-// ตรวจคำตอบข้อเดียว: choice = ตำแหน่งตัวเลือก (เริ่มที่ 0), number = ตัวเลขที่ยอมให้คลาดเคลื่อนได้
-export function gradeQuestion(question, given) {
-  const answer = parseJson(question.answer_json, null);
-  if (answer === null) return false;
-  if (question.type === "choice") {
-    return Number.isInteger(given) && given === answer;
+function parseStrictNumber(raw) {
+  if (
+    raw === null ||
+    raw === undefined ||
+    raw === "" ||
+    typeof raw === "boolean" ||
+    typeof raw === "object"
+  ) {
+    return null;
   }
-  if (question.type === "number") {
-    return (
-      typeof given === "number" &&
-      Number.isFinite(given) &&
-      Math.abs(given - answer.value) <= (answer.tolerance ?? 0)
-    );
+  if (typeof raw !== "number" && typeof raw !== "string") {
+    return null;
+  }
+  if (typeof raw === "string" && raw.trim() === "") {
+    return null;
+  }
+  const num = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(num) ? num : null;
+}
+
+// ตรวจคำตอบข้อเดียว: choice = ตำแหน่งตัวเลือก (เริ่มที่ 0), number = ตัวเลขที่ยอมให้คลาดเคลื่อนได้
+export function gradeQuestion(q, rawGiven) {
+  if (!q) return false;
+  const answer = parseJson(q.answer_json, null);
+  if (answer === null) return false;
+  if (q.type === "choice") {
+    return Number.isInteger(rawGiven) && rawGiven === answer;
+  }
+  if (q.type === "number") {
+    const given = parseStrictNumber(rawGiven);
+    if (given === null) return false;
+
+    const expected = parseStrictNumber(typeof answer === "number" ? answer : answer && answer.value);
+    if (expected === null) return false;
+
+    const tol =
+      typeof answer === "object" && answer !== null && Number.isFinite(answer.tolerance)
+        ? Math.max(0, answer.tolerance)
+        : Math.max(Math.abs(expected) * 0.02, 0.05);
+    return Math.abs(given - expected) <= tol;
   }
   return false;
 }
@@ -181,8 +225,13 @@ async function checkQuiz(env, request, quizId, user) {
   } catch {
     return json({ ok: false, error: "bad_json" }, { status: 400 });
   }
-  const answers = body && typeof body.answers === "object" && body.answers ? body.answers : null;
-  if (!answers) return json({ ok: false, error: "bad_request" }, { status: 400 });
+  if (!body || !body.answers || typeof body.answers !== "object" || Array.isArray(body.answers)) {
+    return json({ ok: false, error: "bad_request" }, { status: 400 });
+  }
+  const answers = body.answers;
+  const duration = Number.isFinite(body.durationSec)
+    ? Math.max(0, Math.min(86400, Math.round(body.durationSec)))
+    : null;
 
   if (!user) {
     user = await getSessionUser(env, request);
@@ -203,13 +252,16 @@ async function checkQuiz(env, request, quizId, user) {
   ).bind(quizId).all()).results;
 
   const results = questions.map((q) => {
-    const correct = gradeQuestion(q, answers[String(q.id)]);
+    const rawGiven = Object.prototype.hasOwnProperty.call(answers, String(q.id))
+      ? answers[String(q.id)]
+      : undefined;
+    const correct = gradeQuestion(q, rawGiven);
     const answer = parseJson(q.answer_json, null);
     return {
       id: q.id,
       correct,
       explanation: q.explanation,
-      correctAnswer: q.type === "number" ? answer && answer.value : answer,
+      correctAnswer: q.type === "number" ? (typeof answer === "number" ? answer : answer && answer.value) : answer,
     };
   });
   const score = results.filter((r) => r.correct).length;
@@ -240,7 +292,18 @@ async function checkQuiz(env, request, quizId, user) {
     }
   }
 
-  return json({ ok: true, score, total, percent, passed: percent >= quiz.pass_score, results }, { headers: NO_STORE });
+  return json(
+    {
+      ok: true,
+      score,
+      total,
+      percent,
+      passed: percent >= quiz.pass_score,
+      results,
+      ...(duration !== null ? { durationSec: duration } : {}),
+    },
+    { headers: NO_STORE }
+  );
 }
 
 // ---------------------------------------------------------------- ระบบสมาชิก (Google Login)
@@ -279,7 +342,7 @@ function safeReturnTo(value) {
 }
 
 function redirect(location, cookies = []) {
-  const headers = new Headers({ location, ...NO_STORE });
+  const headers = mergeSecurityHeaders({ location, ...NO_STORE });
   for (const c of cookies) headers.append("set-cookie", c);
   return new Response(null, { status: 302, headers });
 }
@@ -587,6 +650,12 @@ export default {
     }
 
     // นอกนั้นส่งต่อให้หน้าเว็บ
-    return env.ASSETS.fetch(request);
+    const assetRes = await env.ASSETS.fetch(request);
+    if (assetRes.status === 101) return assetRes;
+    return new Response(assetRes.body, {
+      status: assetRes.status,
+      statusText: assetRes.statusText,
+      headers: mergeSecurityHeaders(assetRes.headers),
+    });
   },
 };

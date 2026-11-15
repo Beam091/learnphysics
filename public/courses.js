@@ -6,6 +6,7 @@
   if (!box) return;
 
   var STORE_KEY = "learnphysics.progress.v1";
+  var LAST_LESSON_KEY = "learnphysics.last_lesson.v1";
 
   // เก็บสถานะของ UI ข้ามการเรนเดอร์ซ้ำ (เช่น เมื่อ lp:auth-ready ทำงาน)
   var activeFilter = "all";
@@ -62,6 +63,7 @@
     var juniorCount = 0;
     var seniorCount = 0;
     var passedCount = 0;
+    var lessonLookup = {};
 
     // ถ้ายังไม่เคยเก็บ openChapterSet ให้เตรียม Set ว่างไว้
     var firstLoad = openChapterSet === null;
@@ -79,6 +81,12 @@
         var lessons = ch.lessons || [];
         lessons.forEach(function (l) {
           totalLessons++;
+          lessonLookup[l.slug] = {
+            slug: l.slug,
+            title: l.title,
+            chapter: ch.title || "",
+            category: cat.title || "",
+          };
           var isJunior = l.level === "junior" || isJuniorCat;
           if (isJunior) {
             juniorCount++;
@@ -186,6 +194,33 @@
       }
     }
     box.appendChild(banner);
+
+    // 1.5 แถบเรียนต่อจากที่ค้างไว้ (Continue Learning Bar)
+    if (isLoggedIn) {
+      var lastLesson = null;
+      try {
+        lastLesson = JSON.parse(localStorage.getItem(LAST_LESSON_KEY));
+      } catch (e) {
+        lastLesson = null;
+      }
+      var matchedLesson = lastLesson && lastLesson.slug ? lessonLookup[lastLesson.slug] : null;
+      if (matchedLesson) {
+        var contBar = make("div", "continue-learning-bar");
+        var contInfo = make("div", "continue-learning-info");
+        contInfo.appendChild(
+          make("span", "continue-learning-title", "▶ เรียนต่อจากที่ค้างไว้: " + (lastLesson.title || matchedLesson.title))
+        );
+        var contSub = matchedLesson.chapter || lastLesson.chapter || matchedLesson.category || "";
+        if (contSub) {
+          contInfo.appendChild(make("span", "continue-learning-meta", contSub));
+        }
+        var contBtn = make("a", "button cta-main continue-learning-btn", "เปิดบทเรียน →");
+        contBtn.href = "/lesson?s=" + encodeURIComponent(matchedLesson.slug);
+        contBar.appendChild(contInfo);
+        contBar.appendChild(contBtn);
+        box.appendChild(contBar);
+      }
+    }
 
     // 2. แถบเครื่องมือค้นหาและกรอง (Course Toolbar)
     var toolbar = make("div", "course-toolbar");

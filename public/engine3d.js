@@ -281,7 +281,7 @@
     this.cosP = Math.cos(this.cam.pitch);
     this.sinP = Math.sin(this.cam.pitch);
     this.camDist = 280;
-    this.fov = Math.min(cssW * 0.85, cssH * 1.42) * 1.28 * clamp(this.cam.zoom, 0.55, 2.6);
+    this.fov = Math.min(cssW * 0.85, cssH * 1.48) * 1.24 * clamp(this.cam.zoom, 0.55, 2.6);
     var ty = this.cam.targetY !== undefined ? this.cam.targetY : 36;
     this.camPos = [
       this.camDist * this.cosP * this.sinY,
@@ -589,13 +589,13 @@
       },
     });
 
-    if (reflectFloor && cy > 0.2 && cy < 135) {
-      var refAlpha = clamp(al * Math.exp(-Math.max(0, cy) / 62) * 0.26, 0, 0.26);
+    if (reflectFloor && cy > 0.2 && cy < 42) {
+      var refAlpha = clamp(al * Math.exp(-Math.max(0, cy) / 24) * 0.14, 0, 0.14);
       if (refAlpha < 0.012) return;
       var refSps = [];
       var refZ = 0;
       for (var k = 0; k < nPts; k++) {
-        var rp = this.proj([pts3[k][0], -Math.max(0, pts3[k][1]) * 0.78, pts3[k][2]]);
+        var rp = this.proj([pts3[k][0], -Math.min(22, Math.max(0, pts3[k][1]) * 0.42), pts3[k][2]]);
         if (!rp) return;
         refSps.push(rp);
         refZ += rp.z;
@@ -712,15 +712,15 @@
         });
       }).call(this, spList, avgZ, localDashOffset);
 
-      if (reflectFloor !== false) {
-        var refAlpha = clamp(Math.exp(-Math.max(0, avgY) / 62) * 0.26, 0, 0.26);
+      if (reflectFloor !== false && avgY < 48) {
+        var refAlpha = clamp(Math.exp(-Math.max(0, avgY) / 26) * 0.15, 0, 0.15);
         if (refAlpha >= 0.014) {
           var refPts = [];
           var refSumZ = 0;
           var refOk = true;
           for (var rIdx = start; rIdx <= end; rIdx++) {
             var p3 = dense[rIdx];
-            var rp = this.proj([p3[0], -Math.max(0, p3[1]) * 0.78, p3[2]]);
+            var rp = this.proj([p3[0], -Math.min(22, Math.max(0, p3[1]) * 0.42), p3[2]]);
             if (!rp) {
               refOk = false;
               break;
@@ -1014,10 +1014,10 @@
     }
 
     // Height-attenuated studio floor mirror reflection
-    if (pos[1] >= 0 && pos[1] < 135) {
-      var refAl = clamp(Math.exp(-Math.max(0, pos[1]) / 62) * 0.26 * al, 0, 0.26);
+    if (pos[1] >= 0 && pos[1] < 65) {
+      var refAl = clamp(Math.exp(-Math.max(0, pos[1]) / 32) * 0.20 * al, 0, 0.20);
       if (refAl >= 0.012) {
-        var refPos = [pos[0], -pos[1] * 0.78, pos[2]];
+        var refPos = [pos[0], -Math.min(24, pos[1] * 0.48), pos[2]];
         var rp = this.proj(refPos);
         if (rp) {
           var rPx = Math.max(2, radius * rp.s);
@@ -1498,7 +1498,7 @@
     // Sleek dark-anodized tilted barrel shroud + rear breech + recessed glowing viewport slot
     var bMidX = ox + (barrelLen * 0.44) * ca;
     var bMidY = pivotY + (barrelLen * 0.44) * sa;
-    r.addRotatedChamferBox(bMidX, bMidY, 0, 32, 14.2, 15.2, angleRad, pal.graphite, 1, null, true);
+    r.addRotatedChamferBox(bMidX, bMidY, 0, 32, 14.2, 15.2, angleRad, pal.graphite, 1, null, false);
     r.addRotatedChamferBox(ox - 4.5 * ca, pivotY - 4.5 * sa, 0, 8, 13.4, 14.4, angleRad, pal.metalDark, 1, null, false);
 
     // Recessed glowing sight viewport slot on upper barrel shroud
@@ -1548,7 +1548,7 @@
         -1
       );
     }
-    r.addLine(pCenter, [ox + 16.5 * ca, pivotY + 16.5 * sa, 10.7], pal.orange, 2.0, false, -1.2);
+    r.addLine(pCenter, [ox + 16.5 * ca, pivotY + 16.5 * sa, 10.7], pal.cyan, 2.0, false, -1.2);
 
     // Game target zone & marker flag
     if (targetDist > 0) {
@@ -1561,52 +1561,61 @@
       r.addPoly([[tx, 45.5, 12], [tx + 18, 38.5, 12], [tx, 31.5, 12]], pal.danger, 1, null, true, false);
     }
 
-    // Smooth kink-free 64-sample parabolic trajectory from muzzle down to resting ivory ball (y=8.3)
+    // Smooth kink-free 64-sample parabolic trajectory from muzzle down to resting ball (y=ballR)
     var isHiddenGame = !!st.isGame && !st.revealed;
     var maxFrac = isHiddenGame ? 0.24 : st.animFrac !== undefined ? clamp(st.animFrac, 0.05, 1) : 1;
-    var landRadius = 8.3;
+    var ballR = 7.6;
+    var landY = ballR;
     var hRise = H * scale;
-    var dropH = muzzle[1] - landRadius;
+    var dropH = muzzle[1] - landY;
     var pts = [];
     var segs = 48;
     for (var i = 0; i <= segs; i++) {
       var f = (i / segs) * maxFrac;
       var px = muzzle[0] + R * scale * f;
-      var py = landRadius + dropH * (1 - f) + 4 * hRise * f * (1 - f);
-      pts.push([px, Math.max(landRadius, py), 0]);
+      var py = landY + dropH * (1 - f) + 4 * hRise * f * (1 - f);
+      pts.push([px, Math.max(ballR, py), 0]);
     }
     r.addTube3D(pts, pal.cobalt, isHiddenGame ? 2.6 : 3.7, isHiddenGame, true);
 
-    // Glossy cobalt-blue PBR sphere at launch muzzle
-    r.addSphere(muzzle, 8.2, pal.cobalt, 1, true);
+    // Single clean projectile sphere (idle at muzzle, flying along trajectory, resting at bullseye when landed)
+    var bf = 0;
+    var bx = muzzle[0];
+    var by = muzzle[1];
+    if (!isHiddenGame && (st.projX !== undefined || st.projY !== undefined)) {
+      bx = muzzle[0] + (st.projX || 0) * scale;
+      by = Math.max(ballR, muzzle[1] + (st.projY || 0) * scale);
+      bf = st.ballT !== undefined && T > 0 ? clamp(st.ballT / T, 0, 1) : R > 0 ? clamp((st.projX || 0) / R, 0, 1) : 0;
+    } else {
+      var ballT = st.ballT !== undefined ? st.ballT : 0;
+      bf = !isHiddenGame && T > 0 ? clamp(ballT / T, 0, 1) : 0;
+      bx = muzzle[0] + R * scale * bf;
+      by = Math.max(ballR, landY + dropH * (1 - bf) + 4 * hRise * bf * (1 - bf));
+    }
 
     if (!isHiddenGame) {
-      // Exact geometric apex along smooth parabola + orange pillar & dual floor target rings
-      var fApex = hRise > 0.5 ? clamp(0.5 - dropH / (8 * hRise), 0.04, 0.5) : 0.04;
-      if (fApex > 0.07) {
-        var apexX = muzzle[0] + R * scale * fApex;
-        var apexY = landRadius + dropH * (1 - fApex) + 4 * hRise * fApex * (1 - fApex);
-        r.addPillar(apexX, apexY - 7.4, 0, pal.orange);
-        r.addSphere([apexX, apexY, 0], 7.4, pal.orange, 1, false);
-      }
-
-      // Warm ivory landing PBR sphere + dual concentric floor target rings
+      // Crisp floor bullseye target rings at landing point
       var landX = muzzle[0] + R * scale;
-      r.addRing([landX, 0.32, 0], 13.5, mixHex(pal.cobalt, "#ffffff", 0.2, 0.45), 1.6, true);
-      r.addRing([landX, 0.32, 0], 8.8, mixHex(pal.ivory, pal.cobalt, 0.4, 0.65), 1.4, true);
-      r.addSphere([landX, landRadius, 0], landRadius, pal.ivory, 1, true);
+      r.addRing([landX, 0.32, 0], 13.0, mixHex(pal.cobalt, "#ffffff", 0.2, 0.45), 1.6, true);
+      r.addRing([landX, 0.32, 0], 6.5, mixHex(pal.cobalt, "#ffffff", 0.08, 0.7), 1.5, true);
+      r.addRing([landX, 0.32, 0], 1.6, pal.cobalt, 2.2, true);
+    }
 
-      // Live projectile sphere when st.projX/projY or ballT is active mid-flight
-      var ballT = st.ballT !== undefined ? st.ballT : 0;
-      if (st.projX !== undefined || st.projY !== undefined) {
-        var lx = muzzle[0] + (st.projX || 0) * scale;
-        var ly = Math.max(landRadius, muzzle[1] + (st.projY || 0) * scale);
-        r.addSphere([lx, ly, 0], 7.0, pal.danger, 1, true);
-      } else if (ballT > 0.02 && ballT < T * 0.98) {
-        var bf = clamp(ballT / T, 0, 1);
-        var bx = muzzle[0] + R * scale * bf;
-        var by = landRadius + dropH * (1 - bf) + 4 * hRise * bf * (1 - bf);
-        r.addSphere([bx, Math.max(landRadius, by), 0], 7.0, pal.danger, 1, true);
+    r.addSphere([bx, by, 0], ballR, pal.cobalt, 1, true);
+
+    if (!isHiddenGame && bf < 0.99) {
+      var vyInst = vy - G * bf * T;
+      var vMag = Math.hypot(vx, vyInst);
+      if (vMag > 1.0) {
+        var vLen = clamp(ballR * 0.75 + vMag * 0.65, 11, 29);
+        var ux = vx / vMag;
+        var uy = vyInst / vMag;
+        if (uy < 0 && by + uy * vLen < 1.8) {
+          vLen = Math.max(0, (by - 1.8) / -uy);
+        }
+        if (vLen >= ballR + 2.5) {
+          r.addArrow([bx, by, 0], [bx + ux * vLen, by + uy * vLen, 0], 1.8, pal.emerald);
+        }
       }
     }
 
