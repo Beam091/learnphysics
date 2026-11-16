@@ -37,27 +37,38 @@
   }
 
   function parseHexColor(hex) {
-    if (!hex || hex[0] !== "#") return [74, 125, 255];
-    var h = hex.slice(1);
-    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-    return [
-      parseInt(h.slice(0, 2), 16) || 0,
-      parseInt(h.slice(2, 4), 16) || 0,
-      parseInt(h.slice(4, 6), 16) || 0,
-    ];
+    if (!hex || typeof hex !== "string") return [74, 125, 255];
+    if (hex[0] === "#") {
+      var h = hex.slice(1);
+      if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      return [
+        parseInt(h.slice(0, 2), 16) || 0,
+        parseInt(h.slice(2, 4), 16) || 0,
+        parseInt(h.slice(4, 6), 16) || 0,
+      ];
+    }
+    var m = hex.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    if (m) {
+      return [
+        clamp(parseInt(m[1], 10) || 0, 0, 255),
+        clamp(parseInt(m[2], 10) || 0, 0, 255),
+        clamp(parseInt(m[3], 10) || 0, 0, 255),
+      ];
+    }
+    return [74, 125, 255];
   }
 
   function mixHex(hexA, hexB, t, alpha) {
     var a = parseHexColor(hexA);
     var b = parseHexColor(hexB);
     var f = clamp(t, 0, 1);
-    var r = Math.round(a[0] + (b[0] - a[0]) * f);
-    var g = Math.round(a[1] + (b[1] - a[1]) * f);
-    var bl = Math.round(a[2] + (b[2] - a[2]) * f);
+    var r = clamp(Math.round(a[0] + (b[0] - a[0]) * f), 0, 255);
+    var g = clamp(Math.round(a[1] + (b[1] - a[1]) * f), 0, 255);
+    var bl = clamp(Math.round(a[2] + (b[2] - a[2]) * f), 0, 255);
     if (alpha !== undefined && alpha < 0.999) {
       return "rgba(" + r + "," + g + "," + bl + "," + clamp(alpha, 0, 1).toFixed(3) + ")";
     }
-    return "rgb(" + r + "," + g + "," + bl + ")";
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1);
   }
 
   function shadeColor(hex, intensity, alpha, specAdd) {
@@ -581,6 +592,12 @@
         ctx.closePath();
         ctx.fillStyle = fill;
         ctx.fill();
+        if (!strokeColor && effAlpha >= 0.88) {
+          ctx.strokeStyle = fill;
+          ctx.lineWidth = 0.65;
+          ctx.lineJoin = "round";
+          ctx.stroke();
+        }
         if (strokeColor) {
           ctx.strokeStyle = strokeColor;
           ctx.lineWidth = 0.85;
@@ -646,9 +663,8 @@
   };
 
   // High-resolution 64-sample 3D trajectory tube (bloom + core + offset white specular ribbon)
-  SceneRenderer.prototype.addTube3D = function (pts, color, width, dashed, reflectFloor) {
-    if (!pts || pts.length < 2) return;
-    var dense = sampleCatmullRom(pts, 64);
+  SceneRenderer.prototype._renderTubeDense = function (dense, color, width, dashed, reflectFloor) {
+    if (!dense || dense.length < 2) return;
     var baseW = width || 3.4;
     var glowCol = mixHex(color, "#ffffff", 0.16, 0.24);
     var tubeCol = color;
@@ -755,6 +771,28 @@
         }
       }
     }
+  };
+
+  SceneRenderer.prototype.addTube3D = function (pts, color, width, dashed, reflectFloor) {
+    if (!pts || pts.length < 2) return;
+    var dense = sampleCatmullRom(pts, 64);
+    this._renderTubeDense(dense, color, width, dashed, reflectFloor);
+  };
+
+  SceneRenderer.prototype.addStraightTube3D = function (pts, color, width, dashed, reflectFloor) {
+    if (!pts || pts.length < 2) return;
+    var dense = [pts[0]];
+    for (var i = 0; i < pts.length - 1; i++) {
+      var a = pts[i];
+      var b = pts[i + 1];
+      var segLen = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+      var steps = Math.max(1, Math.min(24, Math.ceil(segLen / 8)));
+      for (var s = 1; s <= steps; s++) {
+        var f = s / steps;
+        dense.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]);
+      }
+    }
+    this._renderTubeDense(dense, color, width, dashed, reflectFloor);
   };
 
   SceneRenderer.prototype.addGlowCurve = SceneRenderer.prototype.addTube3D;
@@ -902,9 +940,13 @@
     var up = Math.abs(axis[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
     var u = norm3(cross3(up, axis));
     var v = norm3(cross3(axis, u));
-    var N = segs || 24;
-    var ringA = [];
-    var ringB = [];
+    var maxRad = Math.max(r1 || 0, r2 || 0);
+    var minSegs = maxRad >= 20 ? 32 : maxRad >= 8 ? 22 : maxRad >= 3 ? 14 : 10;
+    var N = Math.max(segs || 24, minSegs);
+    var axialSlices = len > 36 && withCaps === false ? Math.min(4, Math.ceil(len / 36)) : 1;
+    var unitOx = [];
+    var unitOy = [];
+    var unitOz = [];
     var normRing = [];
     var dr = (r1 - r2) / len;
     for (var i = 0; i < N; i++) {
@@ -914,31 +956,46 @@
       var ox = u[0] * ct + v[0] * st;
       var oy = u[1] * ct + v[1] * st;
       var oz = u[2] * ct + v[2] * st;
-      ringA.push([a[0] + ox * r1, a[1] + oy * r1, a[2] + oz * r1]);
-      ringB.push([b[0] + ox * r2, b[1] + oy * r2, b[2] + oz * r2]);
+      unitOx.push(ox);
+      unitOy.push(oy);
+      unitOz.push(oz);
       normRing.push(norm3([ox + axis[0] * dr, oy + axis[1] * dr, oz + axis[2] * dr]));
     }
-    for (var i = 0; i < N; i++) {
-      var j = (i + 1) % N;
-      var nMid = norm3(add3(normRing[i], normRing[j]));
-      this.addPoly(
-        [ringA[i], ringA[j], ringB[j], ringB[i]],
-        color,
-        alpha,
-        null,
-        true,
-        reflect && i % 2 === 0,
-        nMid
-      );
-    }
     var al = alpha !== undefined ? alpha : 1;
-    if (withCaps !== false && r1 > 0.25) {
-      this.addPoly(ringA, color, alpha, null, true, false, mul3(axis, -1));
-      if (r1 >= 5.5 && al >= 0.9) this._addCapBevel(a, u, v, r1 * 0.92, mixHex(color, "#ffffff", 0.35, 0.45));
-    }
-    if (withCaps !== false && r2 > 0.25) {
-      this.addPoly(ringB, color, alpha, null, true, false, axis);
-      if (r2 >= 5.5 && al >= 0.9) this._addCapBevel(b, u, v, r2 * 0.92, mixHex(color, "#ffffff", 0.35, 0.45));
+    for (var s = 0; s < axialSlices; s++) {
+      var f0 = s / axialSlices;
+      var f1 = (s + 1) / axialSlices;
+      var sa = [a[0] + dir[0] * f0, a[1] + dir[1] * f0, a[2] + dir[2] * f0];
+      var sb = [a[0] + dir[0] * f1, a[1] + dir[1] * f1, a[2] + dir[2] * f1];
+      var sr1 = r1 + (r2 - r1) * f0;
+      var sr2 = r1 + (r2 - r1) * f1;
+      var ringA = [];
+      var ringB = [];
+      for (var k = 0; k < N; k++) {
+        ringA.push([sa[0] + unitOx[k] * sr1, sa[1] + unitOy[k] * sr1, sa[2] + unitOz[k] * sr1]);
+        ringB.push([sb[0] + unitOx[k] * sr2, sb[1] + unitOy[k] * sr2, sb[2] + unitOz[k] * sr2]);
+      }
+      for (var m = 0; m < N; m++) {
+        var j = (m + 1) % N;
+        var nMid = norm3(add3(normRing[m], normRing[j]));
+        this.addPoly(
+          [ringA[m], ringA[j], ringB[j], ringB[m]],
+          color,
+          alpha,
+          null,
+          true,
+          reflect && m % 2 === 0,
+          nMid
+        );
+      }
+      if (s === 0 && withCaps !== false && r1 > 0.25) {
+        this.addPoly(ringA, color, alpha, null, true, false, mul3(axis, -1));
+        if (r1 >= 5.5 && al >= 0.9) this._addCapBevel(a, u, v, r1 * 0.92, mixHex(color, "#ffffff", 0.35, 0.45));
+      }
+      if (s === axialSlices - 1 && withCaps !== false && r2 > 0.25) {
+        this.addPoly(ringB, color, alpha, null, true, false, axis);
+        if (r2 >= 5.5 && al >= 0.9) this._addCapBevel(b, u, v, r2 * 0.92, mixHex(color, "#ffffff", 0.35, 0.45));
+      }
     }
     if (shadow !== false && reflect && Math.min(a[1], b[1]) <= 18) {
       var maxR = Math.max(r1, r2);
@@ -1131,7 +1188,7 @@
   };
 
   SceneRenderer.prototype.addRing = function (pos, radius, color, lineW, onFloor) {
-    var N = 32;
+    var N = 48;
     var sps = [];
     var sumZ = 0;
     for (var i = 0; i <= N; i++) {
@@ -1160,7 +1217,7 @@
 
   // Arbitrary plane 3D arc (e.g. machined elevation protractor quadrant)
   SceneRenderer.prototype.addArc3D = function (center, radius, startAng, endAng, uAxis, vAxis, color, lineW) {
-    var segs = 20;
+    var segs = 36;
     var sps = [];
     var sumZ = 0;
     for (var i = 0; i <= segs; i++) {
@@ -1386,7 +1443,7 @@
 
     // Dial face disc slightly proud of bezel back
     var faceCenter = add3(center, mul3(n, 0.7));
-    var N = 20;
+    var N = 32;
     var facePts = [];
     for (var i = 0; i < N; i++) {
       var th = (i / N) * Math.PI * 2;
@@ -1394,6 +1451,7 @@
       facePts.push(add3(faceCenter, off));
     }
     this.addPoly(facePts, pal.dialFace, 1, pal.metalDark, true, false, n);
+    this.addArc3D(add3(center, mul3(n, 0.88)), R * 0.78, -0.75, 0.75, v, u, mixHex(pal.glass, "#ffffff", 0.55, 0.35), 2.2);
 
     // 9 radial dial tick marks (-125 deg to +125 deg)
     var tickCenter = add3(center, mul3(n, 0.95));
@@ -1500,6 +1558,35 @@
     var bMidY = pivotY + (barrelLen * 0.44) * sa;
     r.addRotatedChamferBox(bMidX, bMidY, 0, 32, 14.2, 15.2, angleRad, pal.graphite, 1, null, false);
     r.addRotatedChamferBox(ox - 4.5 * ca, pivotY - 4.5 * sa, 0, 8, 13.4, 14.4, angleRad, pal.metalDark, 1, null, false);
+    for (var rSide = -1; rSide <= 1; rSide += 2) {
+      var rz = rSide * 8.5;
+      var rOffX = 3.8 * sa;
+      var rOffY = -3.8 * ca;
+      r.addCylinder(
+        [ox + 2 * ca + rOffX, pivotY + 2 * sa + rOffY, rz],
+        [ox + 12 * ca + rOffX, pivotY + 12 * sa + rOffY, rz],
+        1.8,
+        1.8,
+        pal.metalLight,
+        1,
+        14,
+        true,
+        false,
+        false
+      );
+      r.addCylinder(
+        [ox + 12 * ca + rOffX, pivotY + 12 * sa + rOffY, rz],
+        [ox + 18 * ca + rOffX, pivotY + 18 * sa + rOffY, rz],
+        1.1,
+        1.1,
+        pal.brass,
+        1,
+        12,
+        true,
+        false,
+        false
+      );
+    }
 
     // Recessed glowing sight viewport slot on upper barrel shroud
     var slotDist = barrelLen * 0.62;
@@ -1610,6 +1697,18 @@
         var vLen = clamp(ballR * 0.75 + vMag * 0.65, 11, 29);
         var ux = vx / vMag;
         var uy = vyInst / vMag;
+        if (bf > 0.04 && bf < 0.96) {
+          r.addArc3D(
+            [bx - ux * 5.2, by - uy * 5.2, 0],
+            ballR * 0.88,
+            0,
+            Math.PI * 2,
+            [-uy, ux, 0],
+            [0, 0, 1],
+            mixHex(pal.cyan, "#ffffff", 0.35, 0.58),
+            1.7
+          );
+        }
         if (uy < 0 && by + uy * vLen < 1.8) {
           vLen = Math.max(0, (by - 1.8) / -uy);
         }
@@ -1722,14 +1821,16 @@
     var py = 18.5;
     r.addBox(px - 2, 12.5, 4.5, 8, 9, 2.2, pal.graphite, 1, null, false, false);
     r.addBox(px - 2, 12.5, -4.5, 8, 9, 2.2, pal.graphite, 1, null, false, false);
-    r.addCylinder([px, py, -2.2], [px, py, 2.2], 6.4, 6.4, pal.brass, 1, 14, true, false, false);
-    r.addCylinder([px, py, -3.2], [px, py, 3.2], 2.0, 2.0, pal.metalLight, 1, 6, true, false, false);
+    r.addCylinder([px, py, -2.5], [px, py, -1.5], 6.6, 6.6, pal.brass, 1, 22, true, false, false);
+    r.addCylinder([px, py, -1.5], [px, py, 1.5], 5.6, 5.6, pal.metalDark, 1, 20, false, false, false);
+    r.addCylinder([px, py, 1.5], [px, py, 2.5], 6.6, 6.6, pal.brass, 1, 22, true, false, false);
+    r.addCylinder([px, py, -3.2], [px, py, 3.2], 2.0, 2.0, pal.metalLight, 1, 12, true, false, false);
 
     var cordY = chassisY + 1.2;
-    r.addLine([cx + 21, cordY, 0], [px, py + 5.8, 0], pal.ivory, 1.6, false, -1);
-    var dropTop = py + 5.4;
+    r.addLine([cx + 21, cordY, 0], [px, py + 6.0, 0], pal.ivory, 1.6, false, -1);
+    r.addArc3D([px, py, 0], 6.0, 0, Math.PI * 0.5, [1, 0, 0], [0, 1, 0], pal.ivory, 1.6);
     var dropBottom = clamp(15 - animFrac * 8, 5, 16);
-    var wtX = px + 6.4;
+    var wtX = px + 6.0;
     if (F > 0) {
       r.addLine([px + 6.0, py, 0], [wtX, dropBottom + 9, 0], pal.ivory, 1.6, false, -1);
       var wtH = clamp(5 + F * 0.11, 6, 15);
@@ -1803,14 +1904,15 @@
     }
 
     // Glowing trail & stroboscopic position trail spheres along the run
-    r.addTube3D([[-74, 12.2, 0], [cx, 12.2, 0]], pal.cyan, 2.4, false, false);
+    r.addTube3D([[-74, 13.0, 0], [cx, 13.0, 0]], pal.cyan, 2.4, false, false);
     var strobeSteps = 6;
     for (var k = 0; k < strobeSteps; k++) {
       var tk = (phaseT * k) / strobeSteps;
       var sk = u * tk + 0.5 * a * tk * tk;
       var sxk = clamp(-74 + (sk / sMax) * 144, -76, 76);
       if (Math.abs(sxk - cx) > 14) {
-        r.addSphere([sxk, 12.2, 0], 2.8, pal.cyan, 0.72, false);
+        r.addSphere([sxk, 13.0, 0], 2.8, pal.cyan, 0.72, false);
+        r.addRing([sxk, 11.4, 0], 3.4, pal.cyan, 1.2, false);
       }
     }
 
@@ -1850,7 +1952,7 @@
     if (Math.abs(curV) > 0.25) {
       var vSign = curV >= 0 ? 1 : -1;
       var vLen = clamp(Math.abs(curV) * 2.1, 14, 48);
-      r.addArrow([cx + vSign * 22, 20, 0], [cx + vSign * (22 + vLen), 20, 0], 2.2, pal.emerald);
+      r.addArrow([cx + vSign * 22, 21.5, 9], [cx + vSign * (22 + vLen), 21.5, 9], 2.2, pal.emerald);
     }
     if (Math.abs(a) > 0.15) {
       var aSign = a >= 0 ? 1 : -1;
@@ -1941,9 +2043,18 @@
     var sx1 = clamp(x1, -68 + rad1, 68 - rad2 - 12);
     var sx2 = clamp(x2, sx1 + rad1 + rad2 + 4, 72 - rad2);
 
-    // Anodized air-glider saddles + high-gloss cobalt & ivory colliding PBR spheres
-    r.addChamferBox(sx1, 19.8, 0, rad1 * 1.75, 4.2, 24, pal.graphite, 1, null, false, false);
-    r.addChamferBox(sx2, 19.8, 0, rad2 * 1.75, 4.2, 24, pal.graphite, 1, null, false, false);
+    // Anodized air-glider saddles + machined brass end-caps + color-coded mass bands + PBR spheres
+    var w1 = rad1 * 1.75;
+    var w2 = rad2 * 1.75;
+    r.addChamferBox(sx1, 19.8, 0, w1, 4.2, 24, pal.graphite, 1, null, false, false);
+    r.addBox(sx1 - w1 * 0.5, 19.8, 0, 1.8, 4.0, 23.6, pal.brass, 1, null, false, false);
+    r.addBox(sx1 + w1 * 0.5, 19.8, 0, 1.8, 4.0, 23.6, pal.brass, 1, null, false, false);
+    r.addBox(sx1, 20.0, 12.1, w1 * 0.76, 1.6, 0.8, pal.cobalt, 1, null, false, false);
+
+    r.addChamferBox(sx2, 19.8, 0, w2, 4.2, 24, pal.graphite, 1, null, false, false);
+    r.addBox(sx2 - w2 * 0.5, 19.8, 0, 1.8, 4.0, 23.6, pal.brass, 1, null, false, false);
+    r.addBox(sx2 + w2 * 0.5, 19.8, 0, 1.8, 4.0, 23.6, pal.brass, 1, null, false, false);
+    r.addBox(sx2, 20.0, 12.1, w2 * 0.76, 1.6, 0.8, pal.gold, 1, null, false, false);
     var sp1Y = 22 + rad1;
     var sp2Y = 22 + rad2;
     r.addSphere([sx1, sp1Y, 0], rad1, pal.cobalt, 1, true);
@@ -2055,7 +2166,7 @@
       r.addCylinder([shmX, massY - 5, 0], [shmX, massY + 8, 0], massRad, massRad, pal.brass, 1, 16, true, false, false);
       r.addCylinder([shmX, massY + 8, 0], [shmX, hangerTop, 0], 2.0, 2.0, pal.metalLight, 1, 8, false, false, false);
 
-      // Floor phase projection ring + displacement amplitude scale bar
+      // Floor phase projection ring + displacement amplitude scale bar + pointer rod
       var phaseR = 11 + 4 * Math.abs(Math.cos(ang));
       r.addRing([shmX, 0.35, 0], phaseR, mixHex(pal.cobalt, pal.gold, 0.5 + 0.5 * Math.sin(ang), 0.72), 1.8, true);
       var barX = shmX + 20;
@@ -2063,11 +2174,14 @@
       r.addLine([barX - 3, 42, 0], [barX + 3, 42, 0], pal.emerald, 2.0, false, -0.5);
       r.addLine([barX - 2.5, 42 + amp * 0.46, 0], [barX + 2.5, 42 + amp * 0.46, 0], pal.orange, 1.8, false, -0.5);
       r.addLine([barX - 2.5, 42 - amp * 0.46, 0], [barX + 2.5, 42 - amp * 0.46, 0], pal.orange, 1.8, false, -0.5);
+      r.addCylinder([shmX + massRad, massY, 0], [barX - 2, massY, 0], 1.3, 0.9, pal.brass, 1, 10, true, false, false);
+      r.addSphere([barX - 1.8, massY, 0], 1.6, pal.emerald, 1, false);
     }
 
     if (showCirc && showShm) {
       // Synchronized phase projection beam linking circular bob and SHM hanger
       r.addLine([bx, bobY, bz], [shmX - 13, massY, 0], pal.glass, 1.6, true, -1);
+      r.addSphere([shmX - 13, massY, 0], 2.8, pal.cyan, 1, false);
     }
   };
 
@@ -2138,11 +2252,12 @@
     var y1 = 43.0 + r1 * 0.72;
     var y2 = 43.0 + r2 * 0.72;
 
-    // 3D dipole electric field flux tubes (connecting + to - when opposite; flaring outward when like)
+    // 3D dipole electric field flux tubes + animated charge-carrier tracer beads
     for (var ring = 0; ring < 6; ring++) {
       var phi = (ring / 6) * Math.PI * 2 + time * 0.28;
       var cPhi = Math.cos(phi);
       var sPhi = Math.sin(phi);
+      var tRaw = (time * 0.55 + ring / 6) % 1;
       if (opp) {
         var arc = [];
         var lobeAmp = 18 + (ring % 2) * 12;
@@ -2154,6 +2269,11 @@
           arc.push([xx, yy + bulge * cPhi, bulge * sPhi]);
         }
         r.addGlowCurve(arc, pal.cyan, 1.5, true, false);
+        var tf = q1 >= 0 ? tRaw : 1 - tRaw;
+        var txB = x1 + (x2 - x1) * tf;
+        var tyB = y1 + (y2 - y1) * tf;
+        var tBulge = Math.sin(tf * Math.PI) * lobeAmp;
+        r.addSphere([txB, tyB + tBulge * cPhi, tBulge * sPhi], 2.3, pal.cyan, 1, false);
       } else {
         var isLeft = ring % 2 === 0;
         var sx = isLeft ? x1 : x2;
@@ -2168,6 +2288,10 @@
           flare.push([fx, syStart + radF * Math.cos(fPhi), radF * Math.sin(fPhi)]);
         }
         r.addGlowCurve(flare, pal.gold, 1.5, true, false);
+        var tff = q1 >= 0 ? tRaw : 1 - tRaw;
+        var tfx = sx + dirOut * tff * 28;
+        var tRadF = 9 + Math.pow(tff, 0.75) * 26;
+        r.addSphere([tfx, syStart + tRadF * Math.cos(fPhi), tRadF * Math.sin(fPhi)], 2.3, pal.gold, 1, false);
       }
     }
 
@@ -2305,10 +2429,12 @@
     r.addRing([0, vy + 0.5, 0], 7.6, pal.danger, 1.8, false);
     r.addRing([0, vy + 0.5, 0], 12.0, pal.gold, 1.3, false);
 
-    var p = (time * 0.78) % 1;
-    var px = p < 0.5 ? tip[0] * (1 - p * 2) : dst[0] * ((p - 0.5) * 2);
-    var py = p < 0.5 ? tip[1] + (vy - tip[1]) * (p * 2) : vy + (dst[1] - vy) * ((p - 0.5) * 2);
-    r.addSphere([px, py, 0], 3.8, p < 0.5 ? pal.danger : pal.gold, 1, false);
+    for (var pi = 0; pi < 2; pi++) {
+      var p = (time * 0.78 + pi * 0.5) % 1;
+      var px = p < 0.5 ? tip[0] * (1 - p * 2) : dst[0] * ((p - 0.5) * 2);
+      var py = p < 0.5 ? tip[1] + (vy - tip[1]) * (p * 2) : vy + (dst[1] - vy) * ((p - 0.5) * 2);
+      r.addSphere([px, py, 0], 3.8, p < 0.5 ? pal.danger : pal.gold, 1, false);
+    }
 
     // Front-right 3D angle readout gauge on breadboard apron
     r.addGauge3D([56, 15.2, 18.5], 7.6, clamp(deg / 85, 0.02, 0.98), pal.danger, [0, 0.3, 0.95]);
@@ -2398,24 +2524,35 @@
     // Incident beam & interface spark
     r.addGlowCurve([tip, [0, hy, 0]], pal.danger, 2.8, false, false);
     r.addSphere([0, hy, 0], 3.5, pal.ivory, 1, false);
+    if (deg1 >= 2) {
+      r.addArc3D([0, hy, 0], 16, Math.PI * 0.5, Math.PI * 0.5 + a1, [1, 0, 0], [0, 1, 0], pal.danger, 1.9);
+    }
 
     var sinB = (n1 * s1) / Math.max(0.05, n2);
-    var p = (time * 0.78) % 1;
     if (sinB >= 0.9999) {
       // Total Internal Reflection (TIR)
       var tirEnd = [36 * s1, hy + 36 * c1, 0];
       r.addGlowCurve([[0, hy, 0], tirEnd], pal.gold, 3.0, false, false);
+      if (deg1 >= 2) {
+        r.addArc3D([0, hy, 0], 16, Math.PI * 0.5 - a1, Math.PI * 0.5, [1, 0, 0], [0, 1, 0], pal.gold, 1.9);
+      }
       r.addRing([0, hy + 0.4, 0], 10.5, pal.gold, 1.9, false);
       r.addSphere([0, hy - 3.5, 0], 2.2, pal.cyan, 0.45, false);
-      var pt = p < 0.5 ? p * 2 : (p - 0.5) * 2;
-      var pxT = p < 0.5 ? tip[0] * (1 - pt) : tirEnd[0] * pt;
-      var pyT = p < 0.5 ? tip[1] + (hy - tip[1]) * pt : hy + (tirEnd[1] - hy) * pt;
-      r.addSphere([pxT, pyT, 0], 3.6, p < 0.5 ? pal.danger : pal.gold, 1, false);
+      for (var piT = 0; piT < 2; piT++) {
+        var pT = (time * 0.78 + piT * 0.5) % 1;
+        var pt = pT < 0.5 ? pT * 2 : (pT - 0.5) * 2;
+        var pxT = pT < 0.5 ? tip[0] * (1 - pt) : tirEnd[0] * pt;
+        var pyT = pT < 0.5 ? tip[1] + (hy - tip[1]) * pt : hy + (tirEnd[1] - hy) * pt;
+        r.addSphere([pxT, pyT, 0], 3.6, pT < 0.5 ? pal.danger : pal.gold, 1, false);
+      }
     } else {
       var b = Math.asin(sinB);
       // Faint partial surface reflection in upper medium
       if (deg1 >= 3) {
         r.addGlowCurve([[0, hy, 0], [31 * s1, hy + 31 * c1, 0]], mixHex(pal.danger, pal.ivory, 0.35, 0.42), 1.4, false, false);
+      }
+      if (b >= 0.03) {
+        r.addArc3D([0, hy, 0], 16, -Math.PI * 0.5, -Math.PI * 0.5 + b, [1, 0, 0], [0, 1, 0], pal.cyan, 1.9);
       }
       // Refracted beam terminating cleanly at tank floor or side wall + caustic glow
       var sinBabs = Math.max(1e-5, Math.abs(Math.sin(b)));
@@ -2427,10 +2564,13 @@
       r.addRing([hitPt[0], 8.0, 0], 7.0, pal.cyan, 1.7, false);
       r.addRing([hitPt[0], 0.35, 0], 9.5, pal.glass, 1.3, true);
 
-      var pr = p < 0.5 ? p * 2 : (p - 0.5) * 2;
-      var pxR = p < 0.5 ? tip[0] * (1 - pr) : hitPt[0] * pr;
-      var pyR = p < 0.5 ? tip[1] + (hy - tip[1]) * pr : hy + (hitPt[1] - hy) * pr;
-      r.addSphere([pxR, pyR, 0], 3.6, p < 0.5 ? pal.danger : pal.cyan, 1, false);
+      for (var piR = 0; piR < 2; piR++) {
+        var pR = (time * 0.78 + piR * 0.5) % 1;
+        var pr = pR < 0.5 ? pR * 2 : (pR - 0.5) * 2;
+        var pxR = pR < 0.5 ? tip[0] * (1 - pr) : hitPt[0] * pr;
+        var pyR = pR < 0.5 ? tip[1] + (hy - tip[1]) * pr : hy + (hitPt[1] - hy) * pr;
+        r.addSphere([pxR, pyR, 0], 3.6, pR < 0.5 ? pal.danger : pal.cyan, 1, false);
+      }
     }
   };
 
@@ -2512,6 +2652,8 @@
     r.addCylinder([-30, wireY, -28], [76, wireY, -28], 2.4, 2.4, pal.bronze, 1, 5, false, false, false);
     r.addCylinder([76, wireY, -28], [76, wireY, 28], 2.4, 2.4, pal.bronze, 1, 5, false, false, false);
     r.addCylinder([76, wireY, 28], [-30, wireY, 28], 2.4, 2.4, pal.bronze, 1, 5, false, false, false);
+    r.addSphere([-30, wireY, -28], 3.0, pal.brass, 1, false);
+    r.addSphere([-30, wireY, 28], 3.0, pal.brass, 1, false);
     r.addSphere([76, wireY, -28], 3.1, pal.brass, 1, false);
     r.addSphere([76, wireY, 28], 3.1, pal.brass, 1, false);
 
@@ -2520,17 +2662,17 @@
     var resCol = powerNorm > 0.55
       ? mixHex(pal.orange, pal.danger, (powerNorm - 0.55) / 0.45)
       : mixHex(pal.ivory, pal.orange, powerNorm / 0.55);
-    r.addCylinder([-4, wireY + 1.5, -28], [4, wireY + 1.5, -28], 8.2, 8.2, pal.metalLight, 1, 6, true, false, false);
-    r.addCylinder([40, wireY + 1.5, -28], [48, wireY + 1.5, -28], 8.2, 8.2, pal.metalLight, 1, 6, true, false, false);
-    r.addCylinder([4, wireY + 1.5, -28], [40, wireY + 1.5, -28], 7.4, 7.4, resCol, 1, 6, false, false, false);
+    r.addCylinder([-4, wireY + 1.5, -28], [4, wireY + 1.5, -28], 8.2, 8.2, pal.metalLight, 1, 24, true, false, false);
+    r.addCylinder([40, wireY + 1.5, -28], [48, wireY + 1.5, -28], 8.2, 8.2, pal.metalLight, 1, 24, true, false, false);
+    r.addCylinder([4, wireY + 1.5, -28], [40, wireY + 1.5, -28], 7.4, 7.4, resCol, 1, 24, false, false, false);
     var bandCols = [pal.cobalt, R >= 10 ? pal.danger : pal.emerald, pal.gold];
     var bandXs = [11, 21, 31];
     for (var bi = 0; bi < 3; bi++) {
-      r.addCylinder([bandXs[bi], wireY + 1.5, -28], [bandXs[bi] + 3.0, wireY + 1.5, -28], 7.9, 7.9, bandCols[bi], 1, 5, false, false, false);
+      r.addCylinder([bandXs[bi], wireY + 1.5, -28], [bandXs[bi] + 3.0, wireY + 1.5, -28], 7.9, 7.9, bandCols[bi], 1, 24, false, false, false);
     }
     if (powerNorm > 0.08) {
       var glowCol = powerNorm > 0.5 ? pal.danger : pal.orange;
-      r.addCylinder([2, wireY + 1.5, -28], [42, wireY + 1.5, -28], 10.6, 10.6, glowCol, clamp(0.14 + powerNorm * 0.34, 0.14, 0.48), 6, false, false, false);
+      r.addCylinder([2, wireY + 1.5, -28], [42, wireY + 1.5, -28], 10.6, 10.6, glowCol, clamp(0.14 + powerNorm * 0.34, 0.14, 0.48), 24, false, false, false);
     }
 
     // 3D helical load resistor coil on front busbar (z = +28) w/ mounting insulators
@@ -2603,8 +2745,8 @@
     r.addCylinder([rightX + 3, eqY, 0], [rightX + 10.5, eqY, 0], 4.4, 4.4, pal.brass, 1, 8, true, false, false);
     r.addCylinder([rightX + 1, eqY, 0], [rightX + 3.2, eqY, 0], 5.8, 5.8, pal.metalLight, 1, 8, true, false, false);
 
-    // Wave calculation across 34 coupled vertical stainless oscillator rods (x in -68..+68)
-    var segs = 33;
+    // Wave calculation across 45 coupled vertical stainless oscillator rods (x in -68..+68)
+    var segs = 44;
     var spanW = 136;
     var startX = -spanW * 0.5;
     var lamPx = clamp(lam * 16, 22, 126);
@@ -2617,6 +2759,7 @@
     var firstY = eqY + amp * Math.sin(-phase);
     var camAngle = -phase;
     var camPin = [leftX + 2 + 4.8 * Math.cos(camAngle), eqY + 4.8 * Math.sin(camAngle), 0];
+    r.addCylinder([leftX + 2, eqY, -1.2], [leftX + 2, eqY, 1.2], 6.0, 6.0, pal.brass, 1, 24, true, false, false);
     r.addSphere([leftX + 2, eqY, 4.8], 4.2, pal.metalLight, 1, false);
     r.addCylinder(camPin, [startX, firstY, 0], 1.5, 1.5, pal.gold, 1, 6, false, false, false);
 
@@ -2657,7 +2800,7 @@
 
     // Stepped octagonal base plinth + bolted brushed-steel bottom chamber flange
     r.addOctaPlinth(cx, 3.1, 0, 114, 6.2, 98, 4.5, pal.metalDark, 1, true);
-    r.addCylinder([cx, 6.2, 0], [cx, 10.0, 0], 45, 45, pal.titanium, 1, 10, false, false, false);
+    r.addCylinder([cx, 6.2, 0], [cx, 10.0, 0], 45, 45, pal.titanium, 1, 32, false, false, false);
     var rodAngs = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
     for (var ri = 0; ri < 4; ri++) {
       var rx = cx + Math.cos(rodAngs[ri]) * 42.5;
@@ -2667,8 +2810,8 @@
     }
 
     // Thick-walled flanged borosilicate chamber + upper steel flange ring
-    r.addCylinder([cx, 10.0, 0], [cx, 61, 0], 39, 39, pal.glass, 0.18, 10, false, false, false);
-    r.addCylinder([cx, 60, 0], [cx, 63.2, 0], 44, 44, pal.titanium, 1, 10, false, false, false);
+    r.addCylinder([cx, 10.0, 0], [cx, 61, 0], 39, 39, pal.glass, 0.18, 32, false, false, false);
+    r.addCylinder([cx, 60, 0], [cx, 63.2, 0], 44, 44, pal.titanium, 1, 32, false, false, false);
 
     // Translucent glowing teal liquid column reactive to fluid density rho & depth h
     var hNorm = hDepth <= 8 ? clamp(hDepth / 8, 0.06, 1) : clamp(hDepth / 20, 0.4, 1);
@@ -2676,7 +2819,7 @@
     var liqTop = clamp(43 + hNorm * 11 - rhoNorm * 3.0, 40, 56);
     var liqCol = mixHex(pal.glass, pal.cyan, 0.35 + rhoNorm * 0.55);
     var liqAlpha = clamp(0.24 + rhoNorm * 0.22, 0.24, 0.46);
-    r.addCylinder([cx, 10.6, 0], [cx, liqTop, 0], 37, 37, liqCol, liqAlpha, 10, true, false, false);
+    r.addCylinder([cx, 10.6, 0], [cx, liqTop, 0], 37, 37, liqCol, liqAlpha, 32, true, false, false);
     r.addRing([cx, liqTop, 0], 37.2, pal.cyan, 1.9, false);
 
     // Compact hydraulic press gantry columns + top load bridge + motor cap (clear of toolbar)
@@ -2718,12 +2861,12 @@
     // External tall side U-tube glass manometer column (right side x = 58..74)
     r.addBox(66, 4.5, 0, 38, 9, 32, pal.metalDark, 1, null, true, false);
     r.addCylinder([cx + 38, 15, 0], [58, 15, 0], 2.2, 2.2, pal.brass, 1, 4, false, false, false);
-    r.addCylinder([58, 13, 0], [58, 68, 0], 4.2, 4.2, pal.glass, 0.26, 5, false, false, false);
-    r.addCylinder([74, 13, 0], [74, 68, 0], 4.2, 4.2, pal.glass, 0.26, 5, false, false, false);
-    r.addTube3D([[58, 14, 0], [66, 9.2, 0], [74, 14, 0]], pal.cyan, 2.8, false, false);
+    r.addCylinder([58, 13, 0], [58, 68, 0], 4.2, 4.2, pal.glass, 0.26, 18, false, false, false);
+    r.addCylinder([74, 13, 0], [74, 68, 0], 4.2, 4.2, pal.glass, 0.26, 18, false, false, false);
+    r.addArc3D([66, 13.5, 0], 8.0, Math.PI, Math.PI * 2, [1, 0, 0], [0, 1, 0], pal.cyan, 4.2);
     var manDiff = clamp(Pgauge / 110, 0.05, 1) * 17;
-    r.addCylinder([58, 13, 0], [58, clamp(38 - manDiff, 17, 40), 0], 2.7, 2.7, pal.cyan, 0.9, 4, false, false, false);
-    r.addCylinder([74, 13, 0], [74, clamp(38 + manDiff, 36, 64), 0], 2.7, 2.7, pal.cyan, 0.9, 4, false, false, false);
+    r.addCylinder([58, 13, 0], [58, clamp(38 - manDiff, 17, 40), 0], 2.7, 2.7, pal.cyan, 0.9, 18, false, false, false);
+    r.addCylinder([74, 13, 0], [74, clamp(38 + manDiff, 36, 64), 0], 2.7, 2.7, pal.cyan, 0.9, 18, false, false, false);
 
     // Mounted 3D analog pressure dial gauge on front-right manifold deflecting with P = P0 + rho*g*h
     r.addCylinder([cx + 36, 24, 12], [44, 24, 20], 2.2, 2.2, pal.brass, 1, 4, false, false, false);
@@ -2752,7 +2895,7 @@
     var cx = -10;
     // Octagonal pedestal + lower bolted steel flange + 4 tie-bolts
     r.addOctaPlinth(cx, 3.2, 0, 118, 6.4, 94, 4.5, pal.metalDark, 1, true);
-    r.addCylinder([cx, 6.4, 0], [cx, 12.0, 0], 45, 45, pal.titanium, 1, 14, true, false, false);
+    r.addCylinder([cx, 6.4, 0], [cx, 12.0, 0], 45, 45, pal.titanium, 1, 32, true, false, false);
     var bAngs = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
     for (var bi = 0; bi < 4; bi++) {
       var bx = cx + Math.cos(bAngs[bi]) * 42;
@@ -2769,14 +2912,14 @@
       ? mixHex(pal.bronze, pal.orange, (tNorm - 0.35) / 0.35)
       : mixHex(pal.orange, pal.danger, (tNorm - 0.7) / 0.3);
     r.addSpring3D([cx, 11.4, 0], [cx, 17.2, 0], 39, 3, 2.2, coilCol);
-    r.addCylinder([cx, 12.0, 0], [cx, 14.0, 0], 35, 35, coilCol, clamp(0.32 + tNorm * 0.56, 0.32, 0.88), 10, true, false, false);
+    r.addCylinder([cx, 12.0, 0], [cx, 14.0, 0], 35, 35, coilCol, clamp(0.32 + tNorm * 0.56, 0.32, 0.88), 32, true, false, false);
 
     // Compacted quartz glass chamber + top bolted steel retaining collar (clear of toolbar)
-    r.addCylinder([cx, 13.5, 0], [cx, 66.0, 0], 38, 38, pal.glass, 0.18, 14, false, false, false);
-    r.addCylinder([cx, 65.0, 0], [cx, 68.4, 0], 44, 44, pal.titanium, 1, 14, true, false, false);
+    r.addCylinder([cx, 13.5, 0], [cx, 66.0, 0], 38, 38, pal.glass, 0.18, 32, false, false, false);
+    r.addCylinder([cx, 65.0, 0], [cx, 68.4, 0], 44, 44, pal.titanium, 1, 32, true, false, false);
 
     // Dual-ring sealed brass movable piston head + slotted pressure weights + chrome plunger rod
-    r.addCylinder([cx, pisH, 0], [cx, pisH + 6.0, 0], 35.5, 35.5, pal.brass, 0.96, 12, true, false, false);
+    r.addCylinder([cx, pisH, 0], [cx, pisH + 6.0, 0], 35.5, 35.5, pal.brass, 0.96, 32, true, false, false);
     r.addRing([cx, pisH + 1.2, 0], 36.4, pal.metalDark, 2.2, false);
     r.addRing([cx, pisH + 4.5, 0], 36.4, pal.metalDark, 2.2, false);
     r.addCylinder([cx, pisH + 6.0, 0], [cx, pisH + 10.5, 0], 17, 17, pal.graphite, 1, 8, true, false, false);
@@ -2822,6 +2965,20 @@
         dz = (dz / radD) * 29.5;
       }
       var py = yLo + ty * (yHi - yLo);
+      if (T >= 360) {
+        var dirX = (phX % 2) < 1 ? 1 : -1;
+        var dirY = (phY % 2) < 1 ? 1 : -1;
+        var dirZ = (phZ % 2) < 1 ? 1 : -1;
+        var trailLen = clamp((T - 340) * 0.014, 1.8, 5.2);
+        r.addLine(
+          [cx + dx - dirX * trailLen, clamp(py - dirY * trailLen * 0.65, yLo, yHi), dz - dirZ * trailLen * 0.6],
+          [cx + dx, py, dz],
+          mixHex(molCol, "#ffffff", 0.35, 0.48),
+          1.4,
+          false,
+          -0.3
+        );
+      }
       r.addSphere([cx + dx, py, dz], molR, molCol, 1, false);
     }
   };
@@ -2867,15 +3024,15 @@
     r.addBox(0, axY, -24.5, 4.0, 7.5, 3.5, pal.brass, 1, null, false, false);
     r.addBox(0, axY, 24.5, 4.0, 7.5, 3.5, pal.brass, 1, null, false, false);
     if (isConcave) {
-      r.addCylinder([-6.0, axY, 0], [6.0, axY, 0], 24, 24, pal.glass, 0.28, 12, false, false, false);
-      r.addCylinder([6.0, axY, 0], [1.4, axY, 0], 24, 10.5, pal.glass, 0.42, 12, true, false, false);
-      r.addCylinder([-6.0, axY, 0], [-1.4, axY, 0], 24, 10.5, pal.glass, 0.42, 12, true, false, false);
+      r.addCylinder([-6.0, axY, 0], [6.0, axY, 0], 24, 24, pal.glass, 0.28, 36, false, false, false);
+      r.addCylinder([6.0, axY, 0], [1.4, axY, 0], 24, 10.5, pal.glass, 0.42, 36, true, false, false);
+      r.addCylinder([-6.0, axY, 0], [-1.4, axY, 0], 24, 10.5, pal.glass, 0.42, 36, true, false, false);
       r.addArc3D([-6.0, axY, 0], 24.4, 0, Math.PI * 2, [0, 1, 0], [0, 0, 1], pal.metalLight, 1.9);
       r.addArc3D([6.0, axY, 0], 24.4, 0, Math.PI * 2, [0, 1, 0], [0, 0, 1], pal.metalLight, 1.9);
     } else {
-      r.addCylinder([-2.0, axY, 0], [2.0, axY, 0], 24, 24, pal.glass, 0.38, 12, false, false, false);
-      r.addCylinder([2.0, axY, 0], [7.0, axY, 0], 24, 9.0, pal.glass, 0.36, 12, true, false, false);
-      r.addCylinder([-2.0, axY, 0], [-7.0, axY, 0], 24, 9.0, pal.glass, 0.36, 12, true, false, false);
+      r.addCylinder([-2.0, axY, 0], [2.0, axY, 0], 24, 24, pal.glass, 0.38, 36, false, false, false);
+      r.addCylinder([2.0, axY, 0], [7.0, axY, 0], 24, 9.0, pal.glass, 0.36, 36, true, false, false);
+      r.addCylinder([-2.0, axY, 0], [-7.0, axY, 0], 24, 9.0, pal.glass, 0.36, 36, true, false, false);
       r.addArc3D([0, axY, 0], 24.6, 0, Math.PI * 2, [0, 1, 0], [0, 0, 1], pal.cyan, 2.0);
     }
 
@@ -2912,8 +3069,8 @@
       if (!isConcave && Math.abs(s - f) <= 0.35) {
         // Object at focal point -> outgoing parallel beam to infinity
         var slopeInf = -objH / Math.max(8, -objX);
-        r.addGlowCurve([[objX, objTipY, 0], [0, objTipY, 0], [82, clamp(objTipY + slopeInf * 82, 14, 78), 0]], pal.danger, 2.0, false, false);
-        r.addGlowCurve([[objX, objTipY, 0], [0, axY, 0], [82, clamp(axY + slopeInf * 82, 12, 76), 0]], pal.gold, 1.8, false, false);
+        r.addStraightTube3D([[objX, objTipY, 0], [0, objTipY, 0], [82, clamp(objTipY + slopeInf * 82, 14, 78), 0]], pal.danger, 2.0, false, false);
+        r.addStraightTube3D([[objX, objTipY, 0], [0, axY, 0], [82, clamp(axY + slopeInf * 82, 12, 76), 0]], pal.gold, 1.8, false, false);
       } else {
         var sp = (s * F) / (s - F);
         if (sp > 0) {
@@ -2931,10 +3088,13 @@
           }
           r.addArrow([imgX, axY, 0], [imgX, imgTipY, 0], 2.2, pal.emerald);
           r.addSphere([imgX, imgTipY, 0], 3.0, pal.emerald, 1, false);
-          r.addGlowCurve([[objX, objTipY, 0], [0, objTipY, 0], [imgX, imgTipY, 0]], pal.danger, 2.0, false, false);
-          r.addGlowCurve([[objX, objTipY, 0], [0, axY, 0], [imgX, imgTipY, 0]], pal.gold, 1.8, false, false);
+          var parRayPts = fitR === 1
+            ? [[objX, objTipY, 0], [0, objTipY, 0], [fX, axY, 0], [imgX, imgTipY, 0]]
+            : [[objX, objTipY, 0], [0, objTipY, 0], [imgX, imgTipY, 0]];
+          r.addStraightTube3D(parRayPts, pal.danger, 2.0, false, false);
+          r.addStraightTube3D([[objX, objTipY, 0], [0, axY, 0], [imgX, imgTipY, 0]], pal.gold, 1.8, false, false);
           if (Math.abs(imgTipY - axY) <= 23) {
-            r.addGlowCurve([[objX, objTipY, 0], [0, imgTipY, 0], [imgX, imgTipY, 0]], pal.orange, 1.5, false, false);
+            r.addStraightTube3D([[objX, objTipY, 0], [0, imgTipY, 0], [imgX, imgTipY, 0]], pal.orange, 1.5, false, false);
           }
         } else {
           var vImgX = clamp(sp * scale, -84, -8);
@@ -2943,15 +3103,15 @@
           r.addArrow([vImgX, axY, 0], [vImgX, vTipY, 0], 2.0, pal.cyan);
           var divSlope = (objTipY - vTipY) / Math.max(8, -vImgX);
           var cenSlope = -objH / Math.max(8, -objX);
-          r.addGlowCurve([[objX, objTipY, 0], [0, objTipY, 0], [74, clamp(objTipY + divSlope * 74, 16, 80), 0]], pal.danger, 1.9, false, false);
-          r.addGlowCurve([[objX, objTipY, 0], [0, axY, 0], [74, clamp(axY + cenSlope * 74, 14, 42), 0]], pal.gold, 1.7, false, false);
-          r.addGlowCurve([[0, objTipY, 0], [vImgX, vTipY, 0]], pal.cyan, 1.4, true, false);
-          r.addGlowCurve([[0, axY, 0], [vImgX, vTipY, 0]], pal.glass, 1.3, true, false);
+          r.addStraightTube3D([[objX, objTipY, 0], [0, objTipY, 0], [74, clamp(objTipY + divSlope * 74, 16, 80), 0]], pal.danger, 1.9, false, false);
+          r.addStraightTube3D([[objX, objTipY, 0], [0, axY, 0], [74, clamp(axY + cenSlope * 74, 14, 42), 0]], pal.gold, 1.7, false, false);
+          r.addStraightTube3D([[0, objTipY, 0], [vImgX, vTipY, 0]], pal.cyan, 1.4, true, false);
+          r.addStraightTube3D([[0, axY, 0], [vImgX, vTipY, 0]], pal.glass, 1.3, true, false);
         }
       }
     } else {
-      r.addGlowCurve([[objX, objTipY, 0], [0, objTipY, 0]], pal.danger, 1.9, true, false);
-      r.addGlowCurve([[objX, objTipY, 0], [0, axY, 0]], pal.gold, 1.7, true, false);
+      r.addStraightTube3D([[objX, objTipY, 0], [0, objTipY, 0]], pal.danger, 1.9, true, false);
+      r.addStraightTube3D([[objX, objTipY, 0], [0, axY, 0]], pal.gold, 1.7, true, false);
     }
   };
 
@@ -3024,6 +3184,23 @@
       var vLen = clamp(12 + Math.abs(vInst) * v * 0.9, 12, 28);
       r.addArrow([railX, 58, 0], [railX + vDir * vLen, 58, 0], 2.0, pal.emerald);
       r.addArrow([railX, 50, 0], [railX, 50, vDir * -18], 1.9, pal.danger);
+      if (railX > -62) {
+        var iShift = Math.sin(railPhase) * clamp((B * v) / 14, 0.25, 1.8);
+        for (var ec = 0; ec < 8; ec++) {
+          var lFrac = (((ec / 8 + iShift) % 1) + 1) % 1;
+          var ePos;
+          if (lFrac < 0.30) {
+            ePos = [-70 + (railX + 70) * (lFrac / 0.30), 50, -20];
+          } else if (lFrac < 0.50) {
+            ePos = [railX, 50, -20 + 40 * ((lFrac - 0.30) / 0.20)];
+          } else if (lFrac < 0.80) {
+            ePos = [railX - (railX + 70) * ((lFrac - 0.50) / 0.30), 50, 20];
+          } else {
+            ePos = [-70, 50, 20 - 40 * ((lFrac - 0.80) / 0.20)];
+          }
+          r.addSphere(ePos, 2.6, pal.cyan, 1, false);
+        }
+      }
     } else {
       var emfPhase = time * clamp(1.0 + v * 0.14, 1.2, 3.8);
       var emfAmp = clamp((B / 1.8) * (v / 18) * (turns / 7), 0.18, 1.0);
@@ -3045,7 +3222,7 @@
       r.addCylinder([-16, 16, 6], [-13, 16, 29], 1.6, 1.6, pal.bronze, 1, 5, false, false, false);
       r.addCylinder([16, 16, 6], [13, 16, 29], 1.6, 1.6, pal.bronze, 1, 5, false, false, false);
 
-      // 3D glowing cyan magnetic flux loops arching between N and S poles
+      // 3D glowing cyan magnetic flux loops arching between N and S poles + tracer beads
       for (var az = -2; az <= 2; az++) {
         var ang = az * 0.42;
         var arc = [];
@@ -3056,6 +3233,10 @@
           arc.push([lx, 24 + bulge * Math.cos(ang), -3 + bulge * Math.sin(ang)]);
         }
         r.addGlowCurve(arc, pal.cyan, 1.5, true, false);
+        var bf = (time * clamp(0.45 + B * 0.22, 0.5, 1.2) + (az + 2) * 0.2) % 1;
+        var blx = -30 + bf * 60;
+        var bBulge = Math.sin(bf * Math.PI) * (26 + Math.abs(az) * 10);
+        r.addSphere([blx, 24 + bBulge * Math.cos(ang), -3 + bBulge * Math.sin(ang)], 2.1, pal.cyan, 1, false);
       }
 
       // Orbiting charge ring showing Lorentz circular motion (r = mv/qB)
@@ -3135,6 +3316,11 @@
         r.addGlowCurve([[cx + 12, 43, -4], [cx + 30, 47, -4], [cx + 52, 40, -2]], pal.orange, 1.8, true, false);
         r.addSphere(aPos, 3.0, pal.gold, 1, false);
         r.addGlowCurve([[cx + 12, 33, 5], [cx + 32, 29, 7], [cx + 52, 36, 2]], pal.cyan, 1.5, true, false);
+        var betaF = (time * 1.15 + 0.35) % 1;
+        var bPos = betaF <= 0.5
+          ? [cx + 12 + 20 * (betaF * 2), 33 - 4 * (betaF * 2), 5 + 2 * (betaF * 2)]
+          : [cx + 32 + 20 * ((betaF - 0.5) * 2), 29 + 7 * ((betaF - 0.5) * 2), 7 - 5 * ((betaF - 0.5) * 2)];
+        r.addSphere(bPos, 2.5, pal.cyan, 1, false);
         r.addSpring3D([cx + 14, 38, 0], [cx + 52, 38, 0], 3.2, 4, 1.2, pal.violet);
       }
 
@@ -3176,7 +3362,7 @@
       r.addCylinder([refX + 20, 14.3, refZ], [refX + 20, 74, refZ], 1.5, 1.5, pal.metalLight, 1, 6, false, false, false);
       r.addChamferBox(refX, 18, refZ, 28, 3.4, 12, pal.metalLight, 1, null, false, false);
       r.addChamferBox(refX, 74, refZ, 28, 3.4, 12, pal.metalLight, 1, null, false, false);
-      r.addGlowCurve([[refX, 20, refZ], [refX, 72, refZ]], pal.emerald, 2.1, false, false);
+      r.addStraightTube3D([[refX, 20, refZ], [refX, 72, refZ]], pal.emerald, 2.1, false, false);
       var yStat = 22 + 48 * triWave(time * 1.4);
       r.addSphere([refX, yStat, refZ], 4.0, pal.emerald, 1, false);
 
@@ -3196,7 +3382,7 @@
       // Dilated diagonal zig-zag light-clock path + time-dilated bouncing photon sphere
       var diagW = clamp(beta * 24, 0, 23);
       if (diagW >= 1.8) {
-        r.addGlowCurve(
+        r.addStraightTube3D(
           [
             [xPos - diagW, 20, relZ],
             [xPos - diagW * 0.5, 72, relZ],
@@ -3210,7 +3396,7 @@
           false
         );
       } else {
-        r.addGlowCurve([[xPos, 20, relZ], [xPos, 72, relZ]], pal.gold, 2.0, false, false);
+        r.addStraightTube3D([[xPos, 20, relZ], [xPos, 72, relZ]], pal.gold, 2.0, false, false);
       }
       if (diagW >= 1.8) {
         var uRel = triWave((time * 0.35) / gamma);
@@ -3251,12 +3437,12 @@
     r.addChamferBox(58, 13.8, 0, 14, 11.4, 34, pal.ivory, 1, null, false, false);
 
     // Evacuated blown quartz vacuum phototube cylinder + slimmer stepped brass/anodized collar rings
-    r.addCylinder([-52, 47, 0], [58, 47, 0], 27, 27, pal.glass, 0.17, 14, true, false, false);
-    r.addCylinder([-54, 47, 0], [-50, 47, 0], 28.4, 28.4, pal.brass, 1, 12, false, false, false);
-    r.addCylinder([-53, 47, 0], [-51, 47, 0], 29.8, 29.8, pal.graphite, 1, 12, false, false, false);
-    r.addCylinder([56, 47, 0], [60, 47, 0], 28.4, 28.4, pal.brass, 1, 12, false, false, false);
-    r.addCylinder([57, 47, 0], [59, 47, 0], 29.8, 29.8, pal.graphite, 1, 12, false, false, false);
-    r.addCylinder([-51, 60.3, 0], [-60, 67.6, 0], 6.4, 7.6, pal.glass, 0.34, 8, false, false, false);
+    r.addCylinder([-52, 47, 0], [58, 47, 0], 27, 27, pal.glass, 0.17, 32, true, false, false);
+    r.addCylinder([-54, 47, 0], [-50, 47, 0], 28.4, 28.4, pal.brass, 1, 32, false, false, false);
+    r.addCylinder([-53, 47, 0], [-51, 47, 0], 29.8, 29.8, pal.graphite, 1, 32, false, false, false);
+    r.addCylinder([56, 47, 0], [60, 47, 0], 28.4, 28.4, pal.brass, 1, 32, false, false, false);
+    r.addCylinder([57, 47, 0], [59, 47, 0], 29.8, 29.8, pal.graphite, 1, 32, false, false, false);
+    r.addCylinder([-51, 60.3, 0], [-60, 67.6, 0], 6.4, 7.6, pal.glass, 0.34, 16, false, false, false);
 
     // Curved metallic photo-emissive cathode plate + fine collector anode rod & ring
     var cathPts = [
@@ -3278,9 +3464,9 @@
     r.addChamferBox(24, 16.5, 21, 26, 15, 10, pal.graphite, 1, null, false, false);
     var ampFrac = (!isHidden || firing) && Ek > 0 ? clamp(0.14 + Ek / 4.2, 0.14, 0.96) : 0.03;
     r.addGauge3D([24, 21.5, 26.5], 10.2, ampFrac, pal.cyan, [0, 0.22, 0.98]);
-    r.addTube3D([[-53, 47, 0], [-53, 15, 22], [-33, 15, 22]], pal.bronze, 2.0, false, false);
-    r.addTube3D([[-7, 15, 22], [11, 15, 22]], pal.bronze, 2.0, false, false);
-    r.addTube3D([[37, 15, 22], [59, 15, 22], [59, 47, 0]], pal.bronze, 2.0, false, false);
+    r.addStraightTube3D([[-53, 47, 0], [-53, 15, 22], [-33, 15, 22]], pal.bronze, 2.0, false, false);
+    r.addStraightTube3D([[-7, 15, 22], [11, 15, 22]], pal.bronze, 2.0, false, false);
+    r.addStraightTube3D([[37, 15, 22], [59, 15, 22], [59, 47, 0]], pal.bronze, 2.0, false, false);
 
     // Grounded UV photon emitter on articulated rear-left support pillar + flush collimator nozzle
     var photCol = freq >= 10.5 ? pal.violet : freq >= 8.0 ? pal.cobalt : freq >= 6.0 ? pal.emerald : pal.gold;
