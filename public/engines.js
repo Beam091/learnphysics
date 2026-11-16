@@ -56,12 +56,14 @@
     var len = Math.sqrt(dx * dx + dy * dy);
     if (len < 1) return;
     var ux = dx / len, uy = dy / len;
-    var hx = x2 - ux * 8, hy = y2 - uy * 8;
+    var headLen = Math.min(10, len * 0.65);
+    var headW = headLen * 0.5;
+    var hx = x2 - ux * (headLen * 0.8), hy = y2 - uy * (headLen * 0.8);
     svgEl(svg, "line", { x1: x1, y1: y1, x2: hx, y2: hy, class: cls });
     var px = -uy, py = ux;
     var p1 = x2.toFixed(1) + "," + y2.toFixed(1);
-    var p2 = (x2 - ux * 10 + px * 5).toFixed(1) + "," + (y2 - uy * 10 + py * 5).toFixed(1);
-    var p3 = (x2 - ux * 10 - px * 5).toFixed(1) + "," + (y2 - uy * 10 - py * 5).toFixed(1);
+    var p2 = (x2 - ux * headLen + px * headW).toFixed(1) + "," + (y2 - uy * headLen + py * headW).toFixed(1);
+    var p3 = (x2 - ux * headLen - px * headW).toFixed(1) + "," + (y2 - uy * headLen - py * headW).toFixed(1);
     svgEl(svg, "polygon", { points: p1 + " " + p2 + " " + p3, class: "arrow-head" });
   }
 
@@ -2025,15 +2027,21 @@
       var m = -sp / s;
       var imgH = objH * m;
       var imgX = midX + sp * scale;
+      var tipY = midY - imgH;
 
       svgEl(svg, "line", { x1: objX, y1: midY - objH, x2: midX, y2: midY - objH, class: "ray" });
-      if (isConcave) {
-        svgEl(svg, "line", { x1: midX, y1: midY - objH, x2: midX + 160, y2: (midY - objH) - (160 / fPix) * objH, class: "ray" });
-        svgEl(svg, "line", { x1: midX - fPix, y1: midY, x2: midX, y2: midY - objH, class: "normal" });
+      if (sp > 0) {
+        svgEl(svg, "line", { x1: midX, y1: midY - objH, x2: imgX, y2: tipY, class: "ray" });
+        svgEl(svg, "line", { x1: objX, y1: midY - objH, x2: imgX, y2: tipY, class: "ray" });
       } else {
-        svgEl(svg, "line", { x1: midX, y1: midY - objH, x2: midX + fPix * 2, y2: midY + objH, class: "ray" });
+        var outDx = 180;
+        var slope1 = ((midY - objH) - tipY) / Math.max(1, midX - imgX);
+        var slope2 = (midY - tipY) / Math.max(1, midX - imgX);
+        svgEl(svg, "line", { x1: midX, y1: midY - objH, x2: midX + outDx, y2: (midY - objH) + slope1 * outDx, class: "ray" });
+        svgEl(svg, "line", { x1: objX, y1: midY - objH, x2: midX + outDx, y2: midY + slope2 * outDx, class: "ray" });
+        svgEl(svg, "line", { x1: isConcave ? midX - fPix : imgX, y1: isConcave ? midY : tipY, x2: midX, y2: midY - objH, class: "normal" });
+        svgEl(svg, "line", { x1: imgX, y1: tipY, x2: midX, y2: midY, class: "normal" });
       }
-      svgEl(svg, "line", { x1: objX, y1: midY - objH, x2: midX + (midX - objX), y2: midY + objH, class: "ray" });
 
       if (imgX > 20 && imgX < 660) {
         var isReal = sp > 0;
@@ -2138,13 +2146,14 @@
         arcD += " A " + safeR + " " + safeR + " 0 0 0 " + (startX + safeR * Math.sin(0.9)) + " " + (startY - safeR * (1 - Math.cos(0.9)));
         svgEl(svg, "path", { d: arcD, class: "path", fill: "none" });
 
-        var curX = startX + safeR * 0.5;
-        var curY = startY - safeR * 0.15;
+        var thetaP = 0.55;
+        var curX = startX + safeR * Math.sin(thetaP);
+        var curY = startY - safeR * (1 - Math.cos(thetaP));
         svgEl(svg, "circle", { cx: curX, cy: curY, r: 8, class: "charge-pos" });
         svgEl(svg, "text", { x: curX, y: curY + 5, "text-anchor": "middle", class: "charge-sign", "font-size": "14px" }).textContent = "+";
 
-        drawArrow(svg, curX, curY, curX + 35, curY - 10);
-        drawArrow(svg, curX, curY, curX - 5, curY - 35);
+        drawArrow(svg, curX, curY, curX + 36 * Math.cos(thetaP), curY - 36 * Math.sin(thetaP));
+        drawArrow(svg, curX, curY, curX - 36 * Math.sin(thetaP), curY - 36 * Math.cos(thetaP));
 
         out1.textContent = F.toFixed(1) + " ×10⁻¹³ N";
         out2.textContent = (r / 20).toFixed(2) + " เมตร";
@@ -2665,13 +2674,14 @@
       svgEl(svg, "text", { x: midX, y: 16, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "เลนส์นูน f=" + fVal + " ซม.";
 
       var ox = midX - s * scale;
-      var objTopY = midY - 40;
-      svgEl(svg, "line", { x1: ox, y1: midY, x2: ox, y2: objTopY, class: "ray" });
-      svgEl(svg, "text", { x: ox, y: midY + 20, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "วัตถุ s=" + s + " ซม.";
+      var raySpread = 36;
+      svgEl(svg, "line", { x1: ox, y1: midY, x2: ox, y2: midY + 26, class: "g-axis", "stroke-width": 2.5 });
+      svgEl(svg, "circle", { cx: ox, cy: midY, r: 5, class: "ball" });
+      svgEl(svg, "text", { x: ox, y: midY + 42, "text-anchor": "middle", class: "g-label", "font-size": "13px" }).textContent = "วัตถุ s=" + s + " ซม.";
 
-      // รังสีตกกระทบจากปลายวัตถุถึงตัวเลนส์ (เห็นได้ตอนปรับค่าโดยยังไม่เฉลยจุดตัดภาพ)
-      svgEl(svg, "line", { x1: ox, y1: objTopY, x2: midX, y2: objTopY, stroke: "var(--path)", "stroke-width": 2, "stroke-dasharray": "5 4", opacity: 0.7 });
-      svgEl(svg, "line", { x1: ox, y1: objTopY, x2: midX, y2: midY, stroke: "var(--path)", "stroke-width": 2, "stroke-dasharray": "5 4", opacity: 0.7 });
+      // รังสีตกกระทบจากแหล่งกำเนิดบนแกนถึงตัวเลนส์ (เห็นได้ตอนปรับค่าโดยยังไม่เฉลยจุดตัดภาพ)
+      svgEl(svg, "line", { x1: ox, y1: midY, x2: midX, y2: midY - raySpread, stroke: "var(--path)", "stroke-width": 2, "stroke-dasharray": "5 4", opacity: 0.7 });
+      svgEl(svg, "line", { x1: ox, y1: midY, x2: midX, y2: midY + raySpread, stroke: "var(--path)", "stroke-width": 2, "stroke-dasharray": "5 4", opacity: 0.7 });
 
       var tx = midX + target * scale;
       svgEl(svg, "rect", { x: tx - 4, y: 30, width: 8, height: 164, class: "target", "fill-opacity": 0.55 });
@@ -2685,11 +2695,11 @@
 
       if (sp > 0) {
         var ix = Math.min(650, midX + sp * scale);
-        var curTipX1 = midX + (ix - midX) * beamProg;
-        var curTipY1 = objTopY + (midY - objTopY) * beamProg;
-        var curTipY2 = midY;
-        svgEl(svg, "line", { x1: midX, y1: objTopY, x2: curTipX1, y2: curTipY1, class: "ray", "stroke-width": 3 });
-        svgEl(svg, "line", { x1: midX, y1: midY, x2: curTipX1, y2: curTipY2, class: "ray", "stroke-width": 3 });
+        var curTipX = midX + (ix - midX) * beamProg;
+        var curTipY1 = (midY - raySpread) + raySpread * beamProg;
+        var curTipY2 = (midY + raySpread) - raySpread * beamProg;
+        svgEl(svg, "line", { x1: midX, y1: midY - raySpread, x2: curTipX, y2: curTipY1, class: "ray", "stroke-width": 3 });
+        svgEl(svg, "line", { x1: midX, y1: midY + raySpread, x2: curTipX, y2: curTipY2, class: "ray", "stroke-width": 3 });
 
         if (beamProg >= 0.95) {
           var diff = Math.abs(sp - target);

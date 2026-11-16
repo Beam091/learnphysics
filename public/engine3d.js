@@ -1810,7 +1810,7 @@
       var sk = u * tk + 0.5 * a * tk * tk;
       var sxk = clamp(-74 + (sk / sMax) * 144, -76, 76);
       if (Math.abs(sxk - cx) > 14) {
-        r.addSphere([sxk, 13.2, -8], 2.8, pal.cyan, 0.72, false);
+        r.addSphere([sxk, 12.2, 0], 2.8, pal.cyan, 0.72, false);
       }
     }
 
@@ -2917,9 +2917,12 @@
       } else {
         var sp = (s * F) / (s - F);
         if (sp > 0) {
-          var imgX = clamp(sp * scale, 14, 85);
           var m = -sp / s;
-          var imgTipY = clamp(axY + m * objH, 14, 74);
+          var rawX = sp * scale;
+          var rawDY = m * objH;
+          var fitR = Math.min(1, 84 / Math.max(14, rawX), 28 / Math.max(1, Math.abs(rawDY)));
+          var imgX = clamp(rawX * fitR, 14, 84);
+          var imgTipY = axY + rawDY * fitR;
           if (!st.targetDist) {
             r.addBox(imgX, 12.2, 0, 14, 4.2, 25, pal.graphite, 1, null, false, false);
             r.addCylinder([imgX, 14.3, -14], [imgX, 65, -14], 1.3, 1.3, pal.metalLight, 1, 5, false, false, false);
@@ -3121,7 +3124,14 @@
       // Radiating alpha, beta & gamma emission rays toward side Geiger-Muller detector
       if (frac > 0.02) {
         var rayF = (time * 0.85) % 1;
-        var aPos = [cx + 12 + rayF * 34, 43 + Math.sin(rayF * Math.PI) * 5, -4];
+        var aPos;
+        if (rayF <= 0.45) {
+          var u1 = rayF / 0.45;
+          aPos = [cx + 12 + 18 * u1, 43 + 4 * u1, -4];
+        } else {
+          var u2 = (rayF - 0.45) / 0.55;
+          aPos = [cx + 30 + 22 * u2, 47 - 7 * u2, -4 + 2 * u2];
+        }
         r.addGlowCurve([[cx + 12, 43, -4], [cx + 30, 47, -4], [cx + 52, 40, -2]], pal.orange, 1.8, true, false);
         r.addSphere(aPos, 3.0, pal.gold, 1, false);
         r.addGlowCurve([[cx + 12, 33, 5], [cx + 32, 29, 7], [cx + 52, 36, 2]], pal.cyan, 1.5, true, false);
@@ -3202,8 +3212,18 @@
       } else {
         r.addGlowCurve([[xPos, 20, relZ], [xPos, 72, relZ]], pal.gold, 2.0, false, false);
       }
-      var yRel = 22 + 48 * triWave((time * 1.4) / gamma);
-      r.addSphere([xPos, yRel, relZ], 4.2, pal.gold, 1, false);
+      if (diagW >= 1.8) {
+        var uRel = triWave((time * 0.35) / gamma);
+        var xRel = xPos - diagW + 2 * diagW * uRel;
+        var segPos = uRel * 4;
+        var segIdx = Math.min(3, Math.floor(segPos));
+        var segU = segPos - segIdx;
+        var yRelDiag = segIdx % 2 === 0 ? 20 + 52 * segU : 72 - 52 * segU;
+        r.addSphere([xRel, yRelDiag, relZ], 4.2, pal.gold, 1, false);
+      } else {
+        var yRel = 20 + 52 * triWave((time * 1.4) / gamma);
+        r.addSphere([xPos, yRel, relZ], 4.2, pal.gold, 1, false);
+      }
 
       // Front 3D relativistic Lorentz factor (gamma) dial gauge centered cleanly between tracks
       r.addChamferBox(-8, 9.8, 32, 28, 11, 10, pal.graphite, 1, null, false, false);
